@@ -1,6 +1,6 @@
 // Offline support. The network is tried first, so a new version shows up as
 // soon as it is published; the cache answers only when the network cannot.
-const CACHE = 'learn-poker-v8';
+const CACHE = 'learn-poker-v9';
 
 // Fetched at install so the app works offline from the first visit.
 // test/ranges.test.mjs fails if a file under js/ or css/ is missing here.
@@ -11,6 +11,8 @@ const SHELL = [
   'icons/icon-192.png',
   'css/app.css',
   'js/app.js',
+  'js/chapter.js',
+  'js/chapters.js',
   'js/charts.js',
   'js/components.js',
   'js/dom.js',
@@ -28,12 +30,14 @@ const SHELL = [
   'js/topicprogress.js',
   'js/trend.js',
   'js/trends.js',
+  'js/walkthrough.js',
   'js/blinds/model.js',
   'js/blinds/pages.js',
   'js/coldcall/model.js',
   'js/coldcall/pages.js',
   'js/data/blinds.js',
   'js/data/coldcall.js',
+  'js/data/lessons.js',
   'js/data/limpers.js',
   'js/data/preflop-ranges.js',
   'js/data/squeeze.js',

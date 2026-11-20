@@ -8,7 +8,9 @@
 //
 // `log` is the history that shows whether scores are improving. One entry per
 // exercise ('sim/steal', 'open/drill' ...), plus 'all' for everything:
-//   { d: { 'YYYY-MM-DD': [answers, score] }, r: 'recent results, oldest first' }
+//   { d: { 'YYYY-MM-DD': [answers, score] }, s: [[round start, answers, score]], r: 'recent results, oldest first' }
+// `s` has one row per round played (start time in seconds), so several rounds
+// in one day stay separate.
 // `r` holds one digit per answer, 9 for right and 0 for wrong, so a part-right
 // result (a painted chart) can sit in between.
 
@@ -16,6 +18,7 @@ const KEY = 'learn-poker:v1';
 const MAX_BOX = 3;
 const RECENT_MAX = 200; // answers kept in each exercise's recent run
 const LOG_DAYS = 150; // days kept in each exercise's history
+const LOG_ROUNDS = 120; // rounds kept in each exercise's history
 const TOPICS = {
   open: ['hands', 'edges', 'paint', 'facts', 'time'],
   threebet: ['hands', 'spots', 'facts', 'time'],
@@ -25,6 +28,7 @@ const TOPICS = {
   squeeze: ['hands', 'spots', 'facts', 'time'],
   blinds: ['steal', 'defend', 'sums', 'spots', 'facts', 'time'],
   sim: ['situations', 'seats', 'leaks', 'time'],
+  guide: ['done'],
 };
 
 function blank() {
@@ -224,26 +228,37 @@ export function resetProgress(topic) {
 
 // ---- History
 
-function logTo(id, day, score) {
+function logTo(id, day, score, round) {
   const entry = isObj(state.log[id]) ? state.log[id] : (state.log[id] = { d: {}, r: '' });
   if (!isObj(entry.d)) entry.d = {};
   const cell = Array.isArray(entry.d[day]) ? entry.d[day] : (entry.d[day] = [0, 0]);
   cell[0] += 1;
   cell[1] = Math.round((cell[1] + score) * 1000) / 1000;
   entry.r = (String(entry.r || '') + Math.round(score * 9)).slice(-RECENT_MAX);
+  if (!Array.isArray(entry.s)) entry.s = [];
+  const last = entry.s[entry.s.length - 1];
+  if (last && last[0] === round) {
+    last[1] += 1;
+    last[2] = Math.round((last[2] + score) * 1000) / 1000;
+  } else {
+    entry.s.push([round, 1, score]);
+    if (entry.s.length > LOG_ROUNDS) entry.s.splice(0, entry.s.length - LOG_ROUNDS);
+  }
   const days = Object.keys(entry.d);
   if (days.length > LOG_DAYS) for (const old of days.sort().slice(0, days.length - LOG_DAYS)) delete entry.d[old];
 }
 
 /**
  * Adds one result to an exercise's history, and to the overall line.
- * `score` runs from 0 (wrong) to 1 (right).
+ * `score` runs from 0 (wrong) to 1 (right). `startedAt` is when the round it
+ * belongs to began: answers that share it are one point on the chart.
  */
-export function logAnswer(ids, score) {
+export function logAnswer(ids, score, startedAt = Date.now()) {
   const value = Math.max(0, Math.min(1, Number(score) || 0));
   const day = dayKey();
-  for (const id of [].concat(ids)) logTo(id, day, value);
-  logTo('all', day, value);
+  const round = Math.round(startedAt / 1000);
+  for (const id of [].concat(ids)) logTo(id, day, value, round);
+  logTo('all', day, value, round);
   commit();
 }
 

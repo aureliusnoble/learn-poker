@@ -11,7 +11,7 @@ import { TOPIC, STUDY_CHARTS, LIMP_CHART, nextLimpSpot } from './model.js';
 const study = { id: 'iso' };
 
 export function learnLimp(root) {
-  const main = shell(root, { title: 'Limpers', back: 'home' });
+  const main = shell(root, { title: 'Limpers', back: 'ch-limp' });
   const draw = () => fill(main,
     cheatSheet(CHEAT, TRICKS),
     h('h2', { class: 'h2' }, 'The charts'),
@@ -24,7 +24,7 @@ export function limpDrill(root) {
   return spotDrill(root, {
     title: 'Limpers in front',
     log: 'limp/drill',
-    back: 'home',
+    back: 'ch-limp',
     topic: TOPIC,
     bucket: 'hands',
     total: 20,
@@ -37,7 +37,7 @@ export function limpSpots(root) {
   return spotDrill(root, {
     title: 'Read the limper',
     log: 'limp/spots',
-    back: 'home',
+    back: 'ch-limp',
     topic: TOPIC,
     bucket: 'spots',
     total: SPOTS.length,
@@ -53,7 +53,7 @@ export function limpSpots(root) {
 export function progressLimp(root) {
   topicProgress(root, {
     title: 'Progress',
-    back: 'home',
+    back: 'ch-limp',
     topic: TOPIC,
     name: 'limpers',
     buckets: ['hands', 'spots'],

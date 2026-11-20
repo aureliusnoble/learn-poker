@@ -26,7 +26,7 @@ const VALUE_BY_OPENER = {
 };
 
 export function learnThreeBet(root) {
-  const main = shell(root, { title: '3-betting', back: 'home' });
+  const main = shell(root, { title: '3-betting', back: 'ch-threebet' });
   const draw = () => fill(main,
     ladder(),
     cheatSheet([CHEAT[0], VALUE_BY_OPENER, ...CHEAT.slice(1)], TRICKS),
@@ -40,7 +40,7 @@ export function chartDrill(root) {
   return spotDrill(root, {
     title: 'Which 3-bet?',
     log: 'threebet/charts',
-    back: 'home',
+    back: 'ch-threebet',
     topic: TOPIC,
     bucket: 'hands',
     total: 20,
@@ -62,7 +62,7 @@ export function spotsDrill(root) {
   return spotDrill(root, {
     title: 'Play the spot',
     log: 'threebet/spots',
-    back: 'home',
+    back: 'ch-threebet',
     topic: TOPIC,
     bucket: 'spots',
     total: 12,
@@ -86,7 +86,7 @@ export function spotsDrill(root) {
 export function progressThreeBet(root) {
   topicProgress(root, {
     title: 'Progress',
-    back: 'home',
+    back: 'ch-threebet',
     topic: TOPIC,
     name: '3-betting',
     buckets: ['hands', 'spots'],

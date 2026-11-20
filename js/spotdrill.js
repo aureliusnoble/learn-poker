@@ -133,7 +133,7 @@ export function spotDrill(root, cfg) {
     batch(() => {
       record(topic, bucket, keyOf(spot), res.ok);
       if (spot.quick) recordTime(topic, bucket, ms);
-      if (cfg.log) logAnswer(logIds(), res.ok ? 1 : 0);
+      if (cfg.log) logAnswer(logIds(), res.ok ? 1 : 0, round.t);
     });
     if (res.leak) round.leaks[res.leak] = (round.leaks[res.leak] || 0) + 1;
     if (cfg.onAnswer) cfg.onAnswer(spot, res);

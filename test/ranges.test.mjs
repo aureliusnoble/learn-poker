@@ -448,22 +448,35 @@ test('the squeeze and blind spots are well formed', () => {
 
 // ---- Scores over time
 
-import { series, momentum, trendWord, roundNote, sparkSvg, chartSvg } from '../js/trend.js';
+import { rounds, momentum, trendWord, roundNote, sparkSvg, chartSvg } from '../js/trend.js';
 
-test('a history becomes points on a calendar that ends today', () => {
-  const today = new Date(2026, 10, 20);
-  const entry = { d: { '2026-11-20': [20, 15], '2026-11-18': [10, 4], '2026-11-10': [4, 4], '2026-08-01': [9, 9] }, r: '' };
-  const s = series(entry, today);
-  assert.equal(s.span, 11);
-  assert.deepEqual(s.points.map((p) => [p.key, p.x, p.n, p.pct]), [
-    ['2026-11-10', 0, 4, 1], ['2026-11-18', 8, 10, 0.4], ['2026-11-20', 10, 20, 0.75],
+const at = (y, m, d, hh = 12, mm = 0) => Math.round(new Date(y, m - 1, d, hh, mm).getTime() / 1000);
+
+test('each round is its own point, so several in a day stay apart', () => {
+  const entry = {
+    d: { '2026-11-19': [20, 10], '2026-11-20': [50, 38] },
+    s: [[at(2026, 11, 20, 9), 20, 12], [at(2026, 11, 20, 13), 20, 16], [at(2026, 11, 20, 21), 10, 10]],
+    r: '',
+  };
+  const r = rounds(entry);
+  // The 19th was recorded before rounds were kept: it shows as one whole-day point.
+  assert.deepEqual(r.points.map((p) => [p.key, p.n, p.pct, p.wholeDay]), [
+    ['2026-11-19', 20, 0.5, true], ['2026-11-20', 20, 0.6, false], ['2026-11-20', 20, 0.8, false], ['2026-11-20', 10, 1, false],
   ]);
-  assert.equal(s.total, 34);
-  // Nothing recorded, or nonsense: an empty week, never a crash.
-  assert.deepEqual(series(null, today), { span: 7, total: 0, points: [] });
-  assert.equal(series({ d: { junk: 'x', '2026-11-20': [0, 0] } }, today).points.length, 0);
-  // The clocks going back does not shift a day.
-  assert.equal(series({ d: { '2026-10-24': [5, 5] } }, new Date(2026, 9, 26)).points[0].x, 4);
+  assert.equal(r.total, 70);
+  assert.deepEqual(rounds(null), { total: 0, points: [] });
+  assert.equal(rounds({ s: [['x', 3, 1], [at(2026, 11, 20), 0, 0]], d: { junk: 'x' } }).points.length, 0);
+});
+
+test('short rounds are joined to the next one that day', () => {
+  // Three hands of one situation in each of four simulator rounds, then a new day.
+  const entry = { s: [[at(2026, 11, 20, 9), 3, 1], [at(2026, 11, 20, 10), 3, 2], [at(2026, 11, 20, 11), 3, 3], [at(2026, 11, 20, 12), 3, 3], [at(2026, 11, 21, 9), 2, 2]] };
+  const r = rounds(entry);
+  assert.deepEqual(r.points.map((p) => [p.key, p.n, p.parts]), [['2026-11-20', 9, 3], ['2026-11-20', 3, 1], ['2026-11-21', 2, 1]]);
+  assert.equal(Math.round(r.points[0].pct * 100), 67);
+  // Only the latest rounds are drawn.
+  const many = { s: Array.from({ length: 50 }, (_, i) => [at(2026, 11, 1 + Math.floor(i / 2), 9 + (i % 2)), 20, 10]) };
+  assert.equal(rounds(many).points.length, 30);
 });
 
 test('improvement is the last 25 answers against the 25 before', () => {
@@ -491,13 +504,89 @@ test('a round is compared with the answers before it', () => {
   assert.equal(roundNote({ r: '9'.repeat(20) }, 20, 20), null);
 });
 
-test('the charts draw one mark per day practised', () => {
-  const s = series({ d: { '2026-11-20': [20, 15], '2026-11-18': [3, 1] } }, new Date(2026, 10, 20));
-  const chart = chartSvg(s, 1, new Date(2026, 10, 20));
-  assert.equal(chart.match(/class="tc-dot/g).length, 2);
+test('the charts draw one mark per round', () => {
+  const today = new Date(2026, 10, 20, 22);
+  const r = rounds({ s: [[at(2026, 11, 18, 9), 3, 1], [at(2026, 11, 20, 9), 20, 12], [at(2026, 11, 20, 13), 20, 15]] });
+  const chart = chartSvg(r, 2, today);
+  assert.equal(chart.match(/class="tc-dot/g).length, 3);
   assert.equal(chart.match(/tc-dot--few/g).length, 1);
-  assert.equal(chart.match(/class="tc-hit"/g).length, 2);
-  assert.ok(chart.includes('Today: 75% of 20') && !chart.includes('NaN'));
-  assert.ok(sparkSvg(s).includes('sp-line') && !sparkSvg(s).includes('NaN'));
-  assert.equal(sparkSvg(series(null)), '');
+  assert.equal(chart.match(/class="tc-hit"/g).length, 3);
+  assert.equal(chart.match(/class="tc-tick"/g).length, 1);
+  assert.ok(/Today \d\d:\d\d.*: 75% of 20/.test(chart) && !chart.includes('NaN'));
+  assert.ok(sparkSvg(r).includes('sp-line') && !sparkSvg(r).includes('NaN'));
+  assert.equal(sparkSvg(rounds(null)), '');
+  assert.ok(!chartSvg(rounds({ s: [[at(2026, 11, 20, 9), 20, 12]] }), 0, today).includes('NaN'));
+});
+
+// ---- Walkthroughs and chapters
+
+import { LESSONS as WALKS } from '../js/data/lessons.js';
+import { CHAPTERS } from '../js/chapters.js';
+import { CHARTS as CALL_CHARTS_BUILT } from '../js/coldcall/model.js';
+
+test('every walkthrough step can be put on the table', () => {
+  const ids = new Set();
+  for (const lesson of WALKS) {
+    assert.ok(!ids.has(lesson.id), lesson.id);
+    ids.add(lesson.id);
+    assert.ok(lesson.title && lesson.blurb && lesson.practice.route && lesson.steps.length >= 5, lesson.id);
+    assert.ok(lesson.steps[0].spot, `${lesson.id}: the first step needs a table`);
+    lesson.steps.forEach((step, i) => {
+      const at = `${lesson.id} step ${i + 1}`;
+      assert.ok(step.head && (step.text || step.ask), at);
+      if (step.spot) readSpot(step.spot);
+      for (const w of step.whatIf || []) {
+        assert.ok(w.label && w.text, at);
+        if (w.spot) readSpot(w.spot);
+      }
+      if (step.ask) {
+        const options = step.ask.options.map((o) => o.id);
+        assert.ok([].concat(step.ask.correct).every((id) => options.includes(id)) && step.ask.why, at);
+      }
+      // A step says one thing: no paragraph runs long.
+      for (const t of [].concat(step.text || [])) assert.ok(t.length <= 260, `${at}: ${t.length} characters`);
+    });
+    assert.ok(lesson.steps.at(-1).ask, `${lesson.id}: ends on a question`);
+  }
+});
+
+test('the plays a walkthrough names are the plays the drills mark right', () => {
+  const callPlay = (spot) => {
+    const info = readSpot(spot);
+    const chart = CALL_CHARTS_BUILT.find((c) => c.id === info.villain);
+    const cat = chart.categoryOf(spot.hero.hand);
+    return cat === 'value3bet' ? ['3bet'] : cat ? ['call'] : ['fold'];
+  };
+  const by = {
+    open: (spot) => [POS[spot.hero.seat].hands.has(spot.hero.hand) ? 'raise' : 'fold'],
+    call: callPlay,
+    limp: (spot) => adviseLimped(spot).correct,
+    squeeze: (spot) => adviseSqueeze(spot).correct,
+    steal: (spot) => adviseSteal(spot).correct,
+    defend: (spot) => adviseDefend(spot).correct,
+  };
+  let checked = 0;
+  for (const lesson of WALKS) {
+    let spot = null;
+    lesson.steps.forEach((step, i) => {
+      spot = step.spot || spot;
+      const cases = [[step.expect, spot], ...(step.whatIf || []).map((w) => [w.expect, w.spot || spot])];
+      for (const [expect, where] of cases) {
+        if (!expect) continue;
+        assert.ok(by[expect.by](where).includes(expect.play), `${lesson.id} step ${i + 1}: ${where.hero.hand} should ${expect.play}`);
+        checked += 1;
+      }
+    });
+  }
+  assert.ok(checked >= 40, `only ${checked} plays checked`);
+});
+
+test('every chapter has lessons, drills and somewhere to go', () => {
+  const taught = new Set();
+  for (const c of CHAPTERS) {
+    assert.ok(c.lessons.length >= 1 && c.drills.length >= 1 && c.blurb, c.id);
+    for (const l of c.lessons) taught.add(l.id);
+    for (const l of c.lessons) assert.ok([...c.drills.map((d) => d.route), 'sizes'].includes(l.practice.route), `${l.id} practises ${l.practice.route}`);
+  }
+  assert.equal(taught.size, WALKS.length);
 });

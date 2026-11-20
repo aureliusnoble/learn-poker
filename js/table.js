@@ -212,9 +212,11 @@ const place = (el, { x, y }) => {
 /**
  * Draws the table and plays the action out seat by seat.
  * hideSeats: leave the position names off until reveal() is called.
+ * startAt: the frame to begin from, so a hand can pick up where an earlier view left off.
+ * focus: seats to ring, to point at them.
  * Returns { el, finish(), reveal() }.
  */
-export function tableView(spot, info, { suits, animate = true, hideSeats = false } = {}) {
+export function tableView(spot, info, { suits, animate = true, hideSeats = false, startAt = 0, focus = [] } = {}) {
   const hero = spot.hero.seat;
   const order = info.order;
   const n = order.length;
@@ -231,7 +233,7 @@ export function tableView(spot, info, { suits, animate = true, hideSeats = false
     const type = PLAYER_TYPES[reads[seat]] || PLAYER_TYPES.unknown;
     const stack = h('span', { class: 'tseat__stack' });
     const isHero = seat === hero;
-    const node = h('div', { class: `tseat${isHero ? ' tseat--hero' : ''}` },
+    const node = h('div', { class: `tseat${isHero ? ' tseat--hero' : ''}${focus.includes(seat) ? ' tseat--focus' : ''}` },
       isHero
         ? (spot.hero.hand ? handCards(spot.hero.hand, suits) : null)
         : h('span', { class: 'tseat__backs', 'aria-hidden': 'true' }, h('i'), h('i')),
@@ -278,8 +280,8 @@ export function tableView(spot, info, { suits, animate = true, hideSeats = false
   label();
 
   let timer = null;
-  let at = 0;
   const lastFrame = info.frames.length - 1;
+  let at = Math.max(0, Math.min(startAt, lastFrame));
   const finish = () => {
     clearTimeout(timer);
     at = lastFrame;
@@ -293,7 +295,7 @@ export function tableView(spot, info, { suits, animate = true, hideSeats = false
     timer = setTimeout(tick, kind === 'fold' ? 80 : 340);
   };
 
-  if (animate && !still() && lastFrame > 0) tick(); else finish();
+  if (animate && !still() && at < lastFrame) tick(); else finish();
   el.addEventListener('click', finish);
   return {
     el,

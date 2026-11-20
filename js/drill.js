@@ -29,7 +29,7 @@ export const LEAKS = {
 };
 
 export function newRound(total) {
-  return { i: 0, total, right: 0, streak: 0, best: 0, ms: 0, timed: 0, misses: [], recent: [], retry: [] };
+  return { i: 0, total, right: 0, streak: 0, best: 0, ms: 0, timed: 0, misses: [], recent: [], retry: [], t: Date.now() };
 }
 
 /**

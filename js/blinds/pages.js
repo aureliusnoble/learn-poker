@@ -14,7 +14,7 @@ const STUDY = [...DEFEND_CHARTS.map((c) => ({ ...c, id: `d-${c.id}`, name: `${c.
 const study = { id: STUDY[0].id };
 
 export function learnBlinds(root) {
-  const main = shell(root, { title: 'Stealing and blind defence', back: 'home' });
+  const main = shell(root, { title: 'Stealing and blind defence', back: 'ch-blinds' });
   const draw = () => fill(main,
     cheatSheet(CHEAT, TRICKS),
     h('h2', { class: 'h2' }, 'The charts'),
@@ -27,7 +27,7 @@ export function stealDrill(root) {
   return spotDrill(root, {
     title: 'Steal the blinds',
     log: 'blinds/steal',
-    back: 'home',
+    back: 'ch-blinds',
     topic: TOPIC,
     bucket: 'steal',
     total: 20,
@@ -39,7 +39,7 @@ export function defendDrill(root) {
   return spotDrill(root, {
     title: 'Defend your blind',
     log: 'blinds/defend',
-    back: 'home',
+    back: 'ch-blinds',
     topic: TOPIC,
     bucket: 'defend',
     total: 20,
@@ -53,7 +53,7 @@ export function blindSums(root) {
   return spotDrill(root, {
     title: 'Steal sums and spots',
     log: 'blinds/sums',
-    back: 'home',
+    back: 'ch-blinds',
     topic: TOPIC,
     bucket: 'spots',
     total: 12,
@@ -65,7 +65,7 @@ export function blindSums(root) {
 export function progressBlinds(root) {
   topicProgress(root, {
     title: 'Progress',
-    back: 'home',
+    back: 'ch-blinds',
     topic: TOPIC,
     name: 'stealing and blind defence',
     buckets: ['steal', 'defend', 'sums', 'spots'],

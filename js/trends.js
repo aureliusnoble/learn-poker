@@ -4,7 +4,7 @@ import { shell } from './components.js';
 import { logOf } from './store.js';
 import { SITUATIONS } from './play.js';
 import {
-  series, momentum, trendWord, sparkSvg, chartSvg, dayLabel, asPct, WINDOW, FEW,
+  rounds, momentum, trendWord, sparkSvg, chartSvg, dayLabel, whenLabel, asPct, WINDOW, FEW, POOL,
 } from './trend.js';
 
 // Every exercise that keeps a history, grouped the way the home page is.
@@ -104,8 +104,8 @@ function basis(m) {
 
 /** The full chart for one exercise, with the day under your finger spelled out and a table below. */
 function detail(entry, state, redraw, { route = null } = {}) {
-  const s = series(entry);
-  if (!s.points.length) return h('p', { class: 'hint' }, 'Nothing in the last 60 days.');
+  const s = rounds(entry);
+  if (!s.points.length) return h('p', { class: 'hint' }, 'No rounds recorded yet.');
   const at = Math.min(state.day == null ? s.points.length - 1 : state.day, s.points.length - 1);
   const p = s.points[at];
   const chart = h('div', { class: 'tchart-wrap', html: chartSvg(s, at) });
@@ -118,14 +118,14 @@ function detail(entry, state, redraw, { route = null } = {}) {
   const few = s.points.some((x) => x.n < FEW);
   return h('div', { class: 'trend-detail' },
     chart,
-    h('p', { class: 'trend-day' }, h('strong', null, dayLabel(p.key)), `: ${asPct(p.pct)} right, from ${p.n} ${p.n === 1 ? 'answer' : 'answers'}`),
-    few ? h('p', { class: 'hint' }, `Hollow dots are days with fewer than ${FEW} answers: too few to read much into.`) : null,
+    h('p', { class: 'trend-day' }, h('strong', null, whenLabel(p)), `: ${asPct(p.pct)} right, from ${p.n} ${p.n === 1 ? 'answer' : 'answers'}${p.parts > 1 ? ` over ${p.parts} short rounds` : ''}`),
+    h('p', { class: 'hint' }, `Each dot is one round, oldest on the left. Rounds with fewer than ${POOL} answers are joined to the next one that day.${few ? ` Hollow dots have fewer than ${FEW} answers.` : ''}`),
     h('details', { class: 'more' },
-      h('summary', null, 'Every day as a table'),
+      h('summary', null, 'Every round as a table'),
       h('table', { class: 'sum' },
-        h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'Day'), h('th', { scope: 'col' }, 'Right'), h('th', { scope: 'col' }, 'Answers'))),
+        h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'When'), h('th', { scope: 'col' }, 'Right'), h('th', { scope: 'col' }, 'Answers'))),
         h('tbody', null, [...s.points].reverse().map((x) => h('tr', null,
-          h('th', { scope: 'row' }, dayLabel(x.key)), h('td', null, asPct(x.pct)), h('td', null, String(x.n))))))),
+          h('th', { scope: 'row' }, whenLabel(x)), h('td', null, asPct(x.pct)), h('td', null, String(x.n))))))),
     route ? h('a', { class: 'btn btn--quiet', href: `#${route}` }, 'Practise this') : null);
 }
 
@@ -136,7 +136,7 @@ export function trendsPage(root) {
   function row(item) {
     const entry = logOf(item.id);
     const m = momentum(entry);
-    const s = series(entry);
+    const s = rounds(entry);
     const open = view.open === item.id;
     const last = s.points[s.points.length - 1];
     return h('li', { class: open ? 'trend is-open' : 'trend' },

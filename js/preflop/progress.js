@@ -17,7 +17,7 @@ function heat(st) {
 }
 
 export function progressOpen(root) {
-  const main = shell(root, { title: 'Progress', back: 'home' });
+  const main = shell(root, { title: 'Progress', back: 'ch-open' });
   let focus = null;
   let confirming = false;
 

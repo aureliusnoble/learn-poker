@@ -14,7 +14,7 @@ let seatFilter = 'ALL';
 
 export function openDrill(root, params = {}) {
   const weak = params.items && params.items.length ? params.items : null;
-  const back = weak ? 'open-progress' : 'home';
+  const back = weak ? 'open-progress' : 'ch-open';
   const main = shell(root, { title: weak ? 'Weak spots' : 'Raise or fold', back });
   main.classList.add('page--drill');
 
@@ -49,7 +49,7 @@ export function openDrill(root, params = {}) {
       record(TOPIC, 'hands', `${q.seat}:${q.hand}`, ok);
       recordTime(TOPIC, q.seat, ms);
       // The weak-spots round is only hands already missed, so it stays out of the history.
-      if (!weak) logAnswer(LOG, ok ? 1 : 0);
+      if (!weak) logAnswer(LOG, ok ? 1 : 0, round.t);
     });
     score(round, `${q.seat}:${q.hand}`, ok, ms, { seat: q.seat, hand: q.hand });
     draw();

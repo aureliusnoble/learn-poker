@@ -11,7 +11,7 @@ import { TOPIC, CHARTS, STUDY_CHARTS, nextSqueezeSpot, dressed } from './model.j
 const study = { id: 'overcall' };
 
 export function learnSqueeze(root) {
-  const main = shell(root, { title: 'Squeezing and over-calling', back: 'home' });
+  const main = shell(root, { title: 'Squeezing and over-calling', back: 'ch-squeeze' });
   const draw = () => fill(main,
     cheatSheet(CHEAT, TRICKS),
     h('h2', { class: 'h2' }, 'The charts'),
@@ -24,7 +24,7 @@ export function squeezeDrill(root) {
   return spotDrill(root, {
     title: 'A raise and a caller',
     log: 'squeeze/drill',
-    back: 'home',
+    back: 'ch-squeeze',
     topic: TOPIC,
     bucket: 'hands',
     total: 20,
@@ -37,7 +37,7 @@ export function squeezeSpots(root) {
   return spotDrill(root, {
     title: 'Squeeze or over-call?',
     log: 'squeeze/spots',
-    back: 'home',
+    back: 'ch-squeeze',
     topic: TOPIC,
     bucket: 'spots',
     total: SPOTS.length,
@@ -49,7 +49,7 @@ export function squeezeSpots(root) {
 export function progressSqueeze(root) {
   topicProgress(root, {
     title: 'Progress',
-    back: 'home',
+    back: 'ch-squeeze',
     topic: TOPIC,
     name: 'squeezing and over-calling',
     buckets: ['hands', 'spots'],

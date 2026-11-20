@@ -338,7 +338,7 @@ export function seatDrill(root) {
   return spotDrill(root, {
     title: 'Find your seat',
     log: 'table/seats',
-    back: 'home',
+    back: 'ch-table',
     topic: 'table',
     bucket: 'seats',
     total: 12,

@@ -5,31 +5,28 @@ book, each turned into charts, a table simulator and practice spots.
 
 ## What is in it
 
-**Play** (at a table of four to six):
+**Home** has the pre-flop simulator, then seven chapters in the order they are
+best learned. Each chapter has its own page:
 
-- **Pre-flop simulator**: any situation the tutorials cover, marked against the
-  book. Folded to you, stealing the blinds, limpers in front, a raise in front,
-  a raise and a caller, defending your blind, being 3-bet, being 4-bet, and the
-  book's own practice hands. A raise is sized as a second step and each mistake
-  is named (too loose, too passive, wrong size ...).
+- **Learn**: a walkthrough for each concept. It shows the hand developing at the
+  table a step at a time, with callouts, "what if" variations and a question to
+  finish (`js/walkthrough.js`, content in `js/data/lessons.js`).
+- **Practise**: the chapter's drills, each showing your score over the last 25 answers.
+- **Look it up**: a cheat sheet, and a page of the hands you miss most.
+
+The chapters: the table, opening ranges, 3-betting, calling a raise (and set
+mining), limpers, a raise and a caller (squeezing and over-calling), and the
+blinds (stealing and defending).
+
+Across chapters:
+
+- **Pre-flop simulator**: any situation the chapters cover, at a table of four
+  to six, marked against the book. A raise is sized as a second step and each
+  mistake is named (too loose, too passive, wrong size ...).
 - **Simulator report**: where you leave the book, by situation, seat and leak.
-- **Progress over time**: your score on every exercise, day by day, and whether
-  the last 25 answers beat the 25 before.
-- **Find your seat**: read your position from the dealer button.
-- **Size the raise**: raises over limpers, 3-bets and 4-bets, in and out of position.
-- **Quick facts**: the numbers and rules to know by heart.
-
-**Six pre-flop tutorials**, each with a cheat sheet, drills and progress:
-
-1. **Opening ranges**: which hands to open from each seat, raising to 3bb.
-2. **3-betting**: sizes, value ranges by who raised, merged and bluff 3-bets,
-   facing a 3-bet, and 4-bets.
-3. **Cold-calling and set mining**: the gap concept, the default calling
-   ranges, and the 15-to-1 rule.
-4. **Limpers**: when to raise a limper, how big, and when to limp behind.
-5. **Squeezing and over-calling**: a raise and a caller in front of you.
-6. **Stealing and blind defence**: steal maths, who is in the blinds, and the
-   small and big blind defending ranges.
+- **Progress over time**: your score on every exercise, round by round, and
+  whether the last 25 answers beat the 25 before.
+- **Size the raise** and **Quick facts**: short recall drills.
 
 They share the same tools:
 
@@ -81,9 +78,9 @@ every drill.
 Charts, drills and explanations are derived from those files. Lesson text and
 the "why" on each spot are prose, so update them by hand if a chart changes.
 
-To add a tutorial: write its data file, build its charts with `makeChart`, hand
-its spots to `spotDrill`, and add its routes in `js/app.js` and its menu in
-`js/home.js`.
+To add a chapter: write its data file, build its charts with `makeChart`, hand
+its spots to `spotDrill`, write its walkthroughs in `js/data/lessons.js`, and
+list it in `js/chapters.js`. Add the routes for its drills in `js/app.js`.
 
 ## Hosting
 
@@ -99,5 +96,5 @@ self-contained page fragment for hosts that serve a single file.
 Progress is one small JSON object in the browser's local storage. Where the host
 page offers a per-person document store (`window.claude`), it is synced there
 too. Besides the running totals for each hand and spot, it keeps a history for
-each exercise (answers and score per day, and the last 200 results), which is
-what the Progress over time page charts (`js/trend.js`).
+each exercise (answers and score per round and per day, and the last 200
+results), which is what the Progress over time page charts (`js/trend.js`).

@@ -12,7 +12,7 @@ const LOG = 'open/edges';
 let seatFilter = 'ALL';
 
 export function edgesDrill(root) {
-  const main = shell(root, { title: 'Find the cut-off', back: 'home' });
+  const main = shell(root, { title: 'Find the cut-off', back: 'ch-open' });
   main.classList.add('page--drill');
 
   let round;
@@ -46,7 +46,7 @@ export function edgesDrill(root) {
     result = { ok, pick, correct, slip };
     batch(() => {
       record(TOPIC, 'edges', `${q.seat}:${q.row}`, ok);
-      logAnswer(LOG, ok ? 1 : 0);
+      logAnswer(LOG, ok ? 1 : 0, round.t);
     });
     score(round, `${q.seat}:${q.row}`, ok, null, { seat: q.seat, row: q.row });
     draw();
@@ -56,7 +56,7 @@ export function edgesDrill(root) {
     if (roundOver(round)) {
       result = null;
       roundSummary(main, round, {
-        back: 'home',
+        back: 'ch-open',
         again: start,
         note: roundNote(logOf(LOG), round.i, round.right),
         missRow: (it) => [

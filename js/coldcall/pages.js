@@ -36,7 +36,7 @@ const BY_OPENER = {
 };
 
 export function learnCall(root) {
-  const main = shell(root, { title: 'Cold-calling and set mining', back: 'home' });
+  const main = shell(root, { title: 'Cold-calling and set mining', back: 'ch-coldcall' });
   const draw = () => fill(main,
     gapBar(),
     cheatSheet([BY_OPENER, ...CHEAT], TRICKS),
@@ -52,7 +52,7 @@ export function learnCall(root) {
 
 /** Sliders for the set-mining sum: the call, the money behind, and what the rule says. */
 export function setTool(root) {
-  const main = shell(root, { title: 'Set-mining sums', back: 'home' });
+  const main = shell(root, { title: 'Set-mining sums', back: 'ch-coldcall' });
   const state = { call: 3, effective: 100 };
   const out = h('div');
   const callOut = h('output', { for: 'calc-call' });
@@ -98,7 +98,7 @@ export function callDrill(root) {
   return spotDrill(root, {
     title: 'Call, 3-bet or fold',
     log: 'coldcall/drill',
-    back: 'home',
+    back: 'ch-coldcall',
     topic: TOPIC,
     bucket: 'hands',
     total: 20,
@@ -116,7 +116,7 @@ export function callSpots(root) {
   return spotDrill(root, {
     title: 'Read the table',
     log: 'coldcall/spots',
-    back: 'home',
+    back: 'ch-coldcall',
     topic: TOPIC,
     bucket: 'spots',
     total: CALL_SPOTS.length,
@@ -131,7 +131,7 @@ export function setDrill(root) {
   return spotDrill(root, {
     title: 'Set mining',
     log: 'coldcall/sets',
-    back: 'home',
+    back: 'ch-coldcall',
     topic: TOPIC,
     bucket: 'sets',
     total: 10,
@@ -145,7 +145,7 @@ export function setDrill(root) {
 export function progressCall(root) {
   topicProgress(root, {
     title: 'Progress',
-    back: 'home',
+    back: 'ch-coldcall',
     topic: TOPIC,
     name: 'cold-calling and set mining',
     buckets: ['hands', 'spots', 'sets'],

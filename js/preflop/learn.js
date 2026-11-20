@@ -7,7 +7,7 @@ import { MEMORY_HOOKS } from '../data/preflop-ranges.js';
 let seat = 'UTG';
 
 export function learnOpen(root) {
-  const main = shell(root, { title: 'Opening ranges', back: 'home' });
+  const main = shell(root, { title: 'Opening ranges', back: 'ch-open' });
 
   function draw() {
     const pos = POS[seat];

@@ -14,7 +14,7 @@ export const paintDrill = (mode) => (root) => {
   const steps = layered
     ? LADDER.slice(1).map((to, i) => ({ key: `${LADDER[i]}>${to}`, from: LADDER[i], to, label: `${LADDER[i]} to ${to}` }))
     : LADDER.map((to) => ({ key: to, from: null, to, label: to === 'CO' ? 'CO · SB' : to }));
-  const main = shell(root, { title: layered ? "What's new?" : 'Paint the range', back: 'home' });
+  const main = shell(root, { title: layered ? "What's new?" : 'Paint the range', back: 'ch-open' });
 
   let step;
   let base;
