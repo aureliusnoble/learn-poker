@@ -14,6 +14,8 @@ const TOPICS = {
   coldcall: ['hands', 'spots', 'sets', 'facts', 'time'],
   table: ['seats', 'sizes', 'time'],
   limp: ['hands', 'spots', 'facts', 'time'],
+  squeeze: ['hands', 'spots', 'facts', 'time'],
+  blinds: ['steal', 'defend', 'sums', 'spots', 'facts', 'time'],
   sim: ['situations', 'seats', 'leaks', 'time'],
 };
 

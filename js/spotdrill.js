@@ -35,7 +35,7 @@ const DEFAULT_QUESTION = {
   4: 'They 4-bet. What now?',
 };
 
-const RAISES = new Set(['raise', 'iso', '3bet', '4bet', 'jam']);
+const RAISES = new Set(['raise', 'open', 'iso', '3bet', '4bet', 'jam']);
 const FLATS = new Set(['call', 'limp', 'check', 'pass']);
 
 /** The kind of mistake a wrong answer is, when the spot does not say. */
@@ -194,6 +194,20 @@ export function spotDrill(root, cfg) {
       spot.lens ? rangeLens(spot.lens.chart, spot.lens.hand) : null);
   }
 
+  function filterRow(filter, done) {
+    const row = segmented(filter.options, filter.get(), (v) => {
+      filter.set(v);
+      round.retry = []; // missed hands from the old selection do not follow you into the new one
+      if (done) advance(); else ask();
+    }, filter.label);
+    // Long lists of choices wrap onto a second line.
+    if (filter.options.length > 5) {
+      row.classList.add('seg--wrap');
+      row.style.setProperty('--per', filter.options.length > 8 ? 5 : 4);
+    }
+    return row;
+  }
+
   function draw() {
     const sizing = phase === 'size';
     const opts = sizing ? spot.size.options : optionsOf(spot);
@@ -218,19 +232,18 @@ export function spotDrill(root, cfg) {
     };
 
     const limpers = info && info.level === 1 ? info.limpers.length : 0;
+    const callers = info && info.level === 2 ? info.callers.length : 0;
     const question = sizing ? spot.size.question
       : spot.question
-      || (limpers ? `${limpers === 1 ? 'A limper' : `${limpers} limpers`} in front. What is your play?` : DEFAULT_QUESTION[info ? info.level : 2]);
+      || (limpers ? `${limpers === 1 ? 'A limper' : `${limpers} limpers`} in front. What is your play?`
+        : callers ? `A raise and ${callers === 1 ? 'a caller' : `${callers} callers`}. What is your play?`
+        : DEFAULT_QUESTION[info ? info.level : 2]);
     const showChoices = !done || (result.ok && spot.quick);
     // After a size answer, show the sizes; otherwise the plays.
     const shown = done && result.sizeId ? spot.size.options : opts;
 
     fill(main,
-      filter ? segmented(filter.options, filter.get(), (v) => {
-        filter.set(v);
-        round.retry = []; // missed hands from the old selection do not follow you into the new one
-        if (done) advance(); else ask();
-      }, filter.label) : null,
+      filter ? filterRow(filter, done) : null,
       progressRow(round),
       spot.banner ? h('p', { class: 'banner' }, spot.banner) : null,
       spot.hero
@@ -245,7 +258,7 @@ export function spotDrill(root, cfg) {
         : null,
       h('p', { class: 'ask' }, question),
       done ? h('div', { class: 'feedback feedback--open', 'aria-live': 'polite' }, feedback()) : null,
-      h('div', { class: `actions ${wordy ? 'actions--stack' : ''} ${shown.length > 4 ? 'actions--many' : ''}` },
+      h('div', { class: `actions ${showChoices && wordy ? 'actions--stack' : ''} ${showChoices && shown.length > 4 ? 'actions--many' : ''}` },
         showChoices
           ? shown.map(choice)
           : h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },

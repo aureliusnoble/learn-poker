@@ -7,10 +7,14 @@ import { POSITIONS as OPEN_RANGES, FACTS as OPEN_FACTS } from './data/preflop-ra
 import { FACTS as THREEBET_FACTS, SPOTS as TB_SPOTS } from './data/threebet.js';
 import { FACTS as CALL_FACTS, CALL_SPOTS, SET_SPOTS, CRITERIA, SET_CRITERIA, SET_MINING } from './data/coldcall.js';
 import { FACTS as LIMP_FACTS, SPOTS as LIMP_SPOTS } from './data/limpers.js';
+import { FACTS as SQUEEZE_FACTS, SPOTS as SQUEEZE_SPOTS } from './data/squeeze.js';
+import { FACTS as BLIND_FACTS, SPOTS as BLIND_SPOTS } from './data/blinds.js';
 import { makeChart } from './charts.js';
 import { pickHand } from './preflop/model.js';
 import { nextCallSpot } from './coldcall/model.js';
 import { nextLimpSpot } from './limp/model.js';
+import { nextSqueezeSpot } from './squeeze/model.js';
+import { nextStealSpot, nextDefendSpot, dressed as dressBlind } from './blinds/model.js';
 import { SEATS_BY_COUNT, TABLE_SEATS, tablesWith, hasPosition, bb } from './table.js';
 import { threeBetSize, fourBetSize, isoSize } from './sizing.js';
 import { spotDrill, deckOf } from './spotdrill.js';
@@ -179,6 +183,8 @@ export const BOOK_HANDS = [
   ...SET_SPOTS.map((s) => ({ ...s, topic: 'coldcall', bucket: 'sets', criteria: SET_CRITERIA })),
   ...LIMP_SPOTS.filter(plain).map((s) => ({ ...s, topic: 'limp', bucket: 'spots' })),
   ...TB_SPOTS.filter(plain).map((s) => ({ ...s, topic: 'threebet', bucket: 'spots' })),
+  ...SQUEEZE_SPOTS.filter(plain).map((s) => ({ ...s, topic: 'squeeze', bucket: 'spots' })),
+  ...BLIND_SPOTS.filter(plain).map((s) => ({ ...dressBlind(s), topic: 'blinds', bucket: 'spots' })),
 ];
 const bookDeck = deckOf(BOOK_HANDS, 'coldcall', 'spots');
 const SIZERS = { '3bet': threeBetSize, '4bet': fourBetSize, iso: isoSize };
@@ -186,14 +192,17 @@ const SIZERS = { '3bet': threeBetSize, '4bet': fourBetSize, iso: isoSize };
 function bookHand(round) {
   const spot = bookDeck(round);
   // A hand whose one right answer is a raise also asks for its size.
-  const sizer = spot.correct.length === 1 ? SIZERS[spot.correct[0]] : null;
+  const sizer = !spot.size && spot.correct.length === 1 ? SIZERS[spot.correct[0]] : null;
   return sizer ? { ...spot, size: sizer(spot) } : spot;
 }
 
 export const SITUATIONS = [
-  { value: 'open', label: 'Open', name: 'Folded to you', make: openSpot, weight: 3 },
+  { value: 'open', label: 'Open', name: 'Folded to you', make: openSpot, weight: 2.5 },
+  { value: 'steal', label: 'Steal', name: 'Stealing the blinds', make: nextStealSpot, weight: 2 },
   { value: 'limped', label: 'Limp', name: 'Limpers in front', make: nextLimpSpot, weight: 2.5 },
-  { value: 'raised', label: 'Raise', name: 'A raise in front', make: facingRaise, weight: 3 },
+  { value: 'raised', label: 'Raise', name: 'A raise in front', make: facingRaise, weight: 2.5 },
+  { value: 'squeeze', label: 'Squeeze', name: 'A raise and a caller', make: nextSqueezeSpot, weight: 2 },
+  { value: 'blinds', label: 'Blinds', name: 'Defending your blind', make: nextDefendSpot, weight: 2 },
   { value: 'threebet', label: '3-bet', name: 'They 3-bet you', make: facingThreeBet, weight: 1.5 },
   { value: 'fourbet', label: '4-bet', name: 'They 4-bet you', make: facingFourBet, weight: 0.8 },
   { value: 'book', label: 'Book', name: 'Hands from the book', make: bookHand, weight: 2.2 },
@@ -402,6 +411,8 @@ const FACT_SETS = [
   { value: 'limp', label: 'Limpers', facts: LIMP_FACTS },
   { value: 'coldcall', label: 'Calling', facts: CALL_FACTS },
   { value: 'threebet', label: '3-bets', facts: THREEBET_FACTS },
+  { value: 'squeeze', label: 'Squeeze', facts: SQUEEZE_FACTS },
+  { value: 'blinds', label: 'Blinds', facts: BLIND_FACTS },
 ];
 export const ALL_FACTS = FACT_SETS.filter((s) => s.facts)
   .flatMap((s) => s.facts.map((f) => ({ ...f, topic: s.value, bucket: 'facts', key: f.id, title: f.q })));

@@ -1,5 +1,5 @@
 // Limpers in front: what the book says to do, and spots that test it.
-import { ISO, OVER_LIMP, LIMPER_PROFILES } from '../data/limpers.js';
+import { ISO, OVER_LIMP, LIMPER_PROFILES, SHORT_STACK } from '../data/limpers.js';
 import { expand } from '../ranges.js';
 import { makeChart, handsIn } from '../charts.js';
 import { readSpot, SEATS_BY_COUNT } from '../table.js';
@@ -16,6 +16,7 @@ const STRONG = set(ISO.strong);
 const OPTIONAL = set(ISO.optional);
 const BETTER = set(ISO.strongerOptional);
 const OVER = set(OVER_LIMP);
+const SHOVE_CALL = set(SHORT_STACK.raise);
 
 /** Everything playable behind a limper on one chart. Feedback and progress use it. */
 export const LIMP_CHART = makeChart({
@@ -78,6 +79,29 @@ export function adviseLimped(spot, info = readSpot(spot)) {
   const station = info.limpers.some((s) => reads[s] === 'station');
   const tight = n === 1 && reads[info.limpers[0]] === 'weaktight';
   const out = { options: inBlind ? ['check', 'iso'] : ['fold', 'limp', 'iso'] };
+
+  // A short-stacked limper can move all-in over a raise, before or on the flop.
+  const short = info.limpers.find((s) => info.stackOf(s) <= SHORT_STACK.max);
+  if (short && !SHOVE_CALL.has(hand)) {
+    const playable = OPTIONAL.has(hand) || OVER.has(hand);
+    if (DEFAULT.has(hand)) {
+      // The book would raise these smaller, or not at all: it gives both.
+      return {
+        ...out,
+        correct: ['iso', passive, ...(inBlind ? [] : ['fold'])],
+        leaks: {},
+        why: `The limper has only ${info.stackOf(short)}bb. ${hand} is not a hand to call an all-in with, so raise it smaller (2.5bb to 3bb) or do not raise it at all.`,
+      };
+    }
+    if (playable) {
+      return {
+        ...out,
+        correct: inBlind ? ['check'] : raiserBehind ? ['fold'] : ['limp', 'fold'],
+        leaks: { iso: 'wild', ...(raiserBehind && !inBlind ? { limp: 'limpraise' } : {}) },
+        why: `The limper has only ${info.stackOf(short)}bb and can move all-in over a raise. Raise only hands you would call that with: AJ+ and 99+. With ${hand}, ${inBlind ? 'check' : raiserBehind ? 'fold: a raiser is still to act' : 'limp behind if the players left to act are passive, or fold'}.`,
+      };
+    }
+  }
 
   if (DEFAULT.has(hand)) {
     if ((crowd || oop) && !STRONG.has(hand)) {
@@ -153,7 +177,7 @@ export function nextLimpSpot(round) {
   const players = pick([6, 6, 5, 4]);
   const order = SEATS_BY_COUNT[players];
   const early = order.filter((s) => s !== 'SB' && s !== 'BB');
-  const kind = weightedPick(['single', 'crowd', 'blind', 'raiser'], (k) => ({ single: 4.5, crowd: 2.5, blind: 1.5, raiser: 1.5 })[k]);
+  const kind = weightedPick(['single', 'crowd', 'blind', 'raiser', 'short'], (k) => ({ single: 4.5, crowd: 2.5, blind: 1.5, raiser: 1.5, short: 1.5 })[k]);
 
   let hero;
   let limpers;
@@ -175,13 +199,19 @@ export function nextLimpSpot(round) {
   }
   limpers.sort((a, b) => order.indexOf(a) - order.indexOf(b));
   const spot = { players, hero: { seat: hero }, reads, action: limpers.map((s) => [s, 'limp']) };
+  if (kind === 'short') spot.stacks = { [limpers[0]]: pick([18, 22, 25, 28, 30]) };
   const info = readSpot({ ...spot, hero: { seat: hero, hand: 'AA' } });
   const firm = info.limpers.length >= 2 || !info.inPosition;
 
   // Raise, speculative, or fold. In a crowd or out of position, stay with hands the book is firm about.
   const tier = weightedPick(['raise', 'spec', 'fold'], (t) => ({ raise: 3, spec: 4, fold: 3 })[t]);
   let pool;
-  if (tier === 'raise') pool = [...(firm ? STRONG : DEFAULT)];
+  if (kind === 'short') {
+    // Only hands the short-stack rule is firm about.
+    pool = tier === 'raise' ? [...SHOVE_CALL]
+      : tier === 'fold' ? handsIn(LIMP_CHART, null)
+      : [...new Set([...OPTIONAL, ...OVER])].filter((h) => !DEFAULT.has(h));
+  } else if (tier === 'raise') pool = [...(firm ? STRONG : DEFAULT)];
   else if (tier === 'fold') pool = handsIn(LIMP_CHART, null);
   else if (firm) pool = [...OVER];
   else if (reads[limpers[0]] === 'weaktight') pool = [...BETTER];

@@ -2,7 +2,7 @@
 import { h, fill } from '../dom.js';
 import { shell } from '../components.js';
 import { LESSONS, SPOTS, CHEAT, TRICKS } from '../data/threebet.js';
-import { CALL_CHARTS } from '../data/coldcall.js';
+import { VALUE_BY_OPENER as VALUE_RANGES } from '../data/squeeze.js';
 import { cheatSheet, moreDetail, chartStudy } from '../feedback.js';
 import { spotDrill, deckOf } from '../spotdrill.js';
 import { topicProgress } from '../topicprogress.js';
@@ -19,13 +19,10 @@ function ladder() {
     rungs.map(([n, name], i) => h('li', null, h('i', { style: `height:${14 + i * 12}px` }), h('b', null, n), name)));
 }
 
-// The value range depends on who raised: it comes from the calling charts.
+// The value range depends on who raised.
 const VALUE_BY_OPENER = {
   title: 'Value 3-bets, by who raised',
-  rows: CALL_CHARTS.map((c) => [
-    `${c.id} raises`,
-    `${c.value3bet.join(', ')}${c.optional3bet.length ? ` · maybe ${c.optional3bet.join(', ')}` : ''}`,
-  ]),
+  rows: VALUE_RANGES.map((v) => [`${v.id} raises`, `${v.default.join(', ')} · maybe ${v.optional.join(', ')}`]),
 };
 
 export function learnThreeBet(root) {

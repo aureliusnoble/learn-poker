@@ -9,6 +9,8 @@ import { SPOTS as TB_SPOTS } from './data/threebet.js';
 import { CALL_SPOTS, SET_SPOTS } from './data/coldcall.js';
 import { ALL_FACTS } from './play.js';
 import { SPOTS as LIMP_SPOTS } from './data/limpers.js';
+import { SPOTS as SQUEEZE_SPOTS } from './data/squeeze.js';
+import { SPOTS as BLIND_SPOTS } from './data/blinds.js';
 import { installCard } from './install.js';
 
 const STORAGE_NOTE = {
@@ -75,6 +77,8 @@ export function home(root) {
   const setKnown = known('coldcall', 'sets', SET_SPOTS);
   const callTotal = CALL_SPOTS.length + SET_SPOTS.length;
   const limpKnown = known('limp', 'spots', LIMP_SPOTS);
+  const squeezeKnown = known('squeeze', 'spots', SQUEEZE_SPOTS);
+  const blindKnown = known('blinds', 'spots', BLIND_SPOTS);
 
   fill(main,
     h('p', { class: 'lede' }, lede),
@@ -149,6 +153,35 @@ export function home(root) {
         { route: 'limp-drill', title: 'Limpers in front', text: 'Raise, limp behind or fold, then size it', stat: accuracy('limp', 'hands'), main: true },
         { route: 'limp-spots', title: 'Read the limper', text: 'Tight or loose, short stacks, raisers behind', stat: `${limpKnown}/${LIMP_SPOTS.length}` },
         { route: 'limp-progress', title: 'Progress', text: 'Misses by hand, and each spot' },
+      ],
+    }),
+
+    topic({
+      eyebrow: 'Pre-flop · 5',
+      title: 'Squeezing and over-calling',
+      blurb: 'One player raises and another calls before it gets to you. When to re-raise them both, when to call along, and how big.',
+      progress: squeezeKnown / SQUEEZE_SPOTS.length,
+      label: 'of spots known',
+      items: [
+        { route: 'sq-learn', title: 'Cheat sheet', text: 'Sizes, value ranges by raiser, the over-calling range' },
+        { route: 'sq-drill', title: 'A raise and a caller', text: 'Squeeze, over-call or fold, then size it', stat: accuracy('squeeze', 'hands'), main: true },
+        { route: 'sq-spots', title: 'Squeeze or over-call?', text: "The book's hands, and who is left to act", stat: `${squeezeKnown}/${SQUEEZE_SPOTS.length}` },
+        { route: 'sq-progress', title: 'Progress', text: 'Misses by chart, and each spot' },
+      ],
+    }),
+
+    topic({
+      eyebrow: 'Pre-flop · 6',
+      title: 'Stealing and blind defence',
+      blurb: 'Raising first in from late position to take the blinds, and what to defend with when someone tries it on you.',
+      progress: blindKnown / BLIND_SPOTS.length,
+      label: 'of spots known',
+      items: [
+        { route: 'bl-learn', title: 'Cheat sheet', text: 'Steal maths, the price to call, both defending ranges' },
+        { route: 'bl-steal', title: 'Steal the blinds', text: 'Who is in the blinds decides the range and the size', stat: accuracy('blinds', 'steal'), main: true },
+        { route: 'bl-defend', title: 'Defend your blind', text: 'Fold, call or 3-bet from the small and big blind', stat: accuracy('blinds', 'defend') },
+        { route: 'bl-sums', title: 'Steal sums and spots', text: 'Break-even, both blinds folding, the price of a call', stat: `${blindKnown}/${BLIND_SPOTS.length}` },
+        { route: 'bl-progress', title: 'Progress', text: 'Misses by hand, and each spot' },
       ],
     }),
 

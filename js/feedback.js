@@ -96,8 +96,15 @@ export function chartStudy(charts, state, redraw, { extra } = {}) {
   grid.el.setAttribute('role', 'img');
   grid.el.setAttribute('aria-label', chart.title || chart.name);
 
+  const picker = segmented(charts.map((c) => ({ value: c.id, label: c.name })), chart.id, (id) => { state.id = id; redraw(); }, 'Chart');
+  // Five or more charts go three to a row.
+  if (charts.length > 4) {
+    picker.classList.add('seg--wrap');
+    picker.style.setProperty('--per', 3);
+  }
+
   return h('section', { class: 'block' },
-    segmented(charts.map((c) => ({ value: c.id, label: c.name })), chart.id, (id) => { state.id = id; redraw(); }, 'Chart'),
+    picker,
     h('div', { class: 'headline' },
       h('div', null,
         h('p', { class: 'eyebrow' }, chart.title || chart.name),

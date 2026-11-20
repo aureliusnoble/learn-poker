@@ -49,6 +49,9 @@ export const PLAYER_TYPES = {
   isoraiser: { tag: 'Raiser', text: 'Aggressive: raises limpers often.' },
 };
 
+/** A seat with its article: 'a UTG', 'an MP'. */
+export const aSeat = (seat, capital = false) => `${capital ? 'A' : 'a'}${seat === 'MP' || seat === 'SB' ? 'n' : ''} ${seat}`;
+
 export const bb = (n) => `${Number.isInteger(n) ? n : Number(n.toFixed(2))}bb`;
 const RAISE_NAME = ['', '', 'Raise', '3-bet', '4-bet', '5-bet'];
 
@@ -78,6 +81,7 @@ export function readSpot(spot) {
   let last = -1; // seat index of the last actor
   let aggressor = null;
   const limpers = []; // seats that called before anyone raised
+  let callers = []; // seats that have called the current raise
 
   const fold = (seat) => {
     seats[seat].status = 'folded';
@@ -100,12 +104,13 @@ export function readSpot(spot) {
       level += 1;
       high = to;
       aggressor = seat;
+      callers = [];
       seats[seat].put = to;
       seats[seat].status = 'raised';
       seats[seat].label = RAISE_NAME[level] || 'Raise';
     } else if (kind === 'call' || kind === 'limp') {
       // A call before anyone has raised is a limp.
-      if (level === 1) limpers.push(seat);
+      if (level === 1) limpers.push(seat); else callers.push(seat);
       seats[seat].put = high;
       seats[seat].status = 'called';
       seats[seat].label = level === 1 ? 'Limp' : 'Call';
@@ -141,6 +146,7 @@ export function readSpot(spot) {
     level, // 1: nobody has raised, 2: facing an open, 3: facing a 3-bet, 4: facing a 4-bet
     villain: aggressor,
     limpers,
+    callers,
     // Position is measured against the raiser, or against every limper when nobody has raised.
     inPosition: aggressor ? hasPosition(hero, aggressor)
       : limpers.length ? limpers.every((seat) => hasPosition(hero, seat)) : null,
@@ -156,7 +162,8 @@ export function optionLabel(id, info) {
     case 'fold': return 'Fold';
     case 'call': return `Call ${bb(info.toCall)}`;
     case 'raise': return `Raise ${bb(OPEN_SIZE_BB)}`;
-    case '3bet': return '3-bet';
+    case 'open': return 'Raise';
+    case '3bet': return info.callers.length ? 'Squeeze' : '3-bet';
     case '4bet': return '4-bet';
     case 'jam': return 'All-in';
     case 'iso': return 'Raise';
@@ -173,7 +180,8 @@ export function optionPhrase(id, info) {
     case 'fold': return 'fold';
     case 'call': return `call ${bb(info.toCall)}`;
     case 'raise': return `raise to ${bb(OPEN_SIZE_BB)}`;
-    case '3bet': return '3-bet';
+    case 'open': return 'raise';
+    case '3bet': return info.callers.length ? 'squeeze' : '3-bet';
     case '4bet': return '4-bet';
     case 'jam': return 'go all-in';
     case 'iso': return 'raise';

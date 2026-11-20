@@ -5,7 +5,7 @@ import { makeChart, handsIn } from '../charts.js';
 import { stat } from '../store.js';
 import { weightedPick } from '../dom.js';
 import { boxWeight, edgeWeight } from '../drill.js';
-import { bb, tablesWith, SEATS_BY_COUNT } from '../table.js';
+import { bb, tablesWith, SEATS_BY_COUNT, aSeat } from '../table.js';
 import { threeBetSize } from '../sizing.js';
 
 export const TOPIC = 'coldcall';
@@ -33,10 +33,10 @@ const WANT = [[null, 4], ['gap', 2.5], ['weaker', 2.5], ['value3bet', 1.5]];
 function reason(chart, hand) {
   const cat = chart.categoryOf(hand);
   const also = chart.optional.has(hand) ? ' It is strong enough to 3-bet for value as well.' : '';
-  if (cat === 'value3bet') return `${hand} is a value 3-bet against a ${chart.id} open.`;
-  if (cat === 'gap') return `${hand} is a gap concept call against a ${chart.id} open: an equity edge over their range, without being strong enough to need a 3-bet.${also}`;
-  if (cat === 'weaker') return `${hand} is a weaker starting hand that still calls a ${chart.id} open by default. It has no equity edge and relies on implied odds.${also}`;
-  return `${hand} is not in the default range against a ${chart.id} open.`;
+  if (cat === 'value3bet') return `${hand} is a value 3-bet against ${aSeat(chart.id)} open.`;
+  if (cat === 'gap') return `${hand} is a gap concept call against ${aSeat(chart.id)} open: an equity edge over their range, without being strong enough to need a 3-bet.${also}`;
+  if (cat === 'weaker') return `${hand} is a weaker starting hand that still calls ${aSeat(chart.id)} open by default. It has no equity edge and relies on implied odds.${also}`;
+  return `${hand} is not in the default range against ${aSeat(chart.id)} open.`;
 }
 
 // What each wrong answer says about how you are playing.
@@ -69,7 +69,7 @@ export function nextCallSpot(getFilter, getPlayers = () => 0) {
       topic: TOPIC,
       bucket: 'hands',
       key: `${chart.id}:${hand}`,
-      title: `Against a ${chart.id} raise`,
+      title: `Against ${aSeat(chart.id)} raise`,
       players: size || pick(tablesWith(chart.id)),
       hero: { seat: pick(CALLER_SEATS[chart.id]), hand },
       reads: { [chart.id]: 'unknown' },

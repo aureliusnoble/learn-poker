@@ -1,4 +1,5 @@
 // Cold-calling and set mining: the lessons, the calculator and the drills.
+import { aSeat } from '../table.js';
 import { h, fill } from '../dom.js';
 import { shell, handTag } from '../components.js';
 import { LESSONS, CRITERIA, SET_CRITERIA, EQUITY_EXAMPLE, SET_MINING, CALL_SPOTS, SET_SPOTS, CALL_CHARTS, CHEAT, TRICKS } from '../data/coldcall.js';
@@ -150,7 +151,7 @@ export function progressCall(root) {
       bucket: 'hands',
       describe: (chart, hand) => {
         const cat = chart.category(chart.categoryOf(hand));
-        return cat ? `${cat.label} against a ${chart.id} open.` : `Fold against a ${chart.id} open.`;
+        return cat ? `${cat.label} against ${aSeat(chart.id)} open.` : `Fold against ${aSeat(chart.id)} open.`;
       },
     },
     decks: [

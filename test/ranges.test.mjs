@@ -270,7 +270,10 @@ test('every simulator situation deals hands the book can mark', () => {
   const shape = {
     open: (info) => info.level === 1 && info.limpers.length === 0,
     limped: (info) => info.level === 1 && info.limpers.length >= 1,
-    raised: (info) => info.level === 2,
+    raised: (info) => info.level === 2 && info.callers.length === 0,
+    steal: (info, spot) => info.level === 1 && info.limpers.length === 0 && ['CO', 'BTN', 'SB'].includes(spot.hero.seat),
+    squeeze: (info) => info.level === 2 && info.callers.length >= 1,
+    blinds: (info, spot) => info.level === 2 && info.callers.length === 0 && ['SB', 'BB'].includes(spot.hero.seat),
     threebet: (info) => info.level === 3,
     fourbet: (info) => info.level === 4,
     book: () => true,
@@ -281,7 +284,7 @@ test('every simulator situation deals hands the book can mark', () => {
       const spot = situation.make({ recent: [] });
       const info = readSpot(spot);
       const at = `${situation.value} ${JSON.stringify(spot.hero)}`;
-      assert.ok(shape[situation.value](info), at);
+      assert.ok(shape[situation.value](info, spot), at);
       assert.ok(spot.correct.length && spot.correct.every((id) => spot.options.includes(id)), at);
       assert.ok(spot.why && spot.topic && spot.bucket && (spot.key || spot.id), at);
       for (const [wrong, leak] of Object.entries(spot.leaks || {})) {
@@ -296,7 +299,7 @@ test('every simulator situation deals hands the book can mark', () => {
     }
     assert.ok(seen.size >= 8, `${situation.value} only dealt ${seen.size} different hands`);
   }
-  assert.ok(BOOK_HANDS.length >= 40);
+  assert.ok(BOOK_HANDS.length >= 60);
 });
 
 test('a mistake is named even when the spot does not say', () => {
@@ -306,4 +309,139 @@ test('a mistake is named even when the spot does not say', () => {
   assert.equal(inferLeak({ correct: ['pass'] }, '3bet'), 'wild');
   assert.equal(inferLeak({ correct: ['limp'] }, 'iso'), 'wild');
   assert.equal(inferLeak({ correct: ['no'] }, 'yes'), null);
+});
+
+// ---- Squeezing, over-calling, stealing and blind defence
+
+import * as squeeze from '../js/data/squeeze.js';
+import * as blinds from '../js/data/blinds.js';
+import { adviseSqueeze, CHARTS as SQUEEZE_CHARTS } from '../js/squeeze/model.js';
+import { adviseSteal, adviseDefend, nextBlindSum, STEAL_CHARTS, DEFEND_CHARTS } from '../js/blinds/model.js';
+import { stealSize } from '../js/sizing.js';
+
+test('a raise and its callers are read off the table', () => {
+  const one = readSpot({ hero: { seat: 'BB', hand: 'AQs' }, action: [['BTN', 'raise', 3], ['SB', 'call']] });
+  assert.deepEqual(one.callers, ['SB']);
+  assert.equal(one.pot, 7);
+  assert.equal(one.toCall, 2);
+  assert.equal(one.inPosition, false);
+  // A re-raise starts the count again.
+  assert.deepEqual(readSpot({ hero: { seat: 'CO', hand: 'AA' }, action: [['CO', 'raise', 3], ['BTN', 'call'], ['BB', 'raise', 13]] }).callers, []);
+});
+
+test('a squeeze is the 3-bet size plus 3bb a caller', () => {
+  const label = (spot) => {
+    const size = threeBetSize(spot);
+    return size.options.find((o) => o.id === size.correct).label;
+  };
+  assert.equal(label({ hero: { seat: 'BTN', hand: 'AA' }, action: [['UTG', 'raise', 3], ['MP', 'call']] }), '13.5bb');
+  assert.equal(label({ hero: { seat: 'BB', hand: 'AA' }, action: [['BTN', 'raise', 3], ['SB', 'call']] }), '12bb');
+  assert.equal(label({ hero: { seat: 'BTN', hand: 'AA' }, action: [['UTG', 'raise', 3], ['MP', 'call'], ['CO', 'call']] }), '16.5bb');
+  // A min-raise is sized as if it had been 3bb.
+  assert.equal(label({ players: 4, hero: { seat: 'SB', hand: 'TT' }, sizeBase: 3, action: [['CO', 'raise', 2], ['BTN', 'call']] }), '12bb');
+  // With nobody in between it is still a plain 3-bet.
+  assert.equal(label({ hero: { seat: 'BTN', hand: 'AA' }, action: [['CO', 'raise', 3]] }), '10.5bb');
+});
+
+test('the squeeze and blind charts hold the hands the book shades', () => {
+  const count = (tokens) => new Set(tokens.flatMap(expand)).size;
+  assert.equal(count(squeeze.OVER_CALL), 21);
+  assert.equal(count(squeeze.OVER_CALL_OR_3BET), 6);
+  assert.equal(count(blinds.PREFER_CALL), 22);
+  assert.equal(count(blinds.DEFENCE.value3bet), 9);
+  assert.equal(count(blinds.DEFENCE.SB.call), 17);
+  assert.equal(count(blinds.DEFENCE.BB.call), 50);
+  // The wider stealing ranges come to the percentages printed over the charts.
+  for (const chart of STEAL_CHARTS) assert.equal(chart.pct.toFixed(2), blinds.MODERATE_PCT[chart.id].toFixed(2), chart.id);
+  assert.equal(STEAL_CHARTS.find((c) => c.id === 'BTN').hands.size, 83);
+  assert.deepEqual(DEFEND_CHARTS.map((c) => c.hands.size), [26, 59]);
+  assert.equal(SQUEEZE_CHARTS.length, 4);
+});
+
+test('the steal and pot-odds tables follow from the arithmetic', () => {
+  for (const [size, pct] of blinds.BREAK_EVEN) assert.equal(((size / (size + blinds.STEAL_REWARD)) * 100).toFixed(1), pct.toFixed(1));
+  const need = (hero, action) => {
+    const info = readSpot({ hero: { seat: hero, hand: 'AA' }, action });
+    return (info.toCall / (info.pot + info.toCall)) * 100;
+  };
+  for (const row of blinds.POT_ODDS) {
+    assert.equal(need('SB', [['BTN', 'raise', row.steal]]).toFixed(2), row.sb.toFixed(2));
+    assert.equal(need('BB', [['BTN', 'raise', row.steal]]).toFixed(2), row.bbAfterFold.toFixed(2));
+    assert.equal(need('BB', [['BTN', 'raise', row.steal], ['SB', 'call']]).toFixed(2), row.bbAfterCall.toFixed(2));
+  }
+  for (let i = 0; i < 200; i++) {
+    const sum = nextBlindSum();
+    const ids = sum.options.map((o) => o.id);
+    assert.ok(ids.includes(sum.correct[0]) && new Set(ids).size === ids.length, sum.key);
+  }
+});
+
+test('the book decides a raise and a caller', () => {
+  const play = (hero, hand, action, reads) => adviseSqueeze({ hero: { seat: hero, hand }, action, reads }).correct;
+  const utg = [['UTG', 'raise', 3], ['MP', 'call']];
+  const btn = [['BTN', 'raise', 3], ['SB', 'call']];
+  assert.deepEqual(play('BTN', 'KK', utg), ['3bet']);
+  assert.deepEqual(play('BTN', 'JJ', utg), ['call']);
+  assert.deepEqual(play('BB', 'JJ', btn), ['3bet']);
+  assert.deepEqual(play('BTN', 'QQ', utg), ['3bet', 'call']);
+  assert.deepEqual(play('BB', 'AJo', btn), ['3bet', 'fold']);
+  assert.deepEqual(play('BTN', '98s', utg), ['call']);
+  assert.deepEqual(play('BTN', '98s', utg, { BB: 'aggro3b' }), ['fold']);
+  assert.deepEqual(play('BTN', 'KQo', utg), ['fold']);
+  assert.deepEqual(play('BTN', '86s', utg), ['fold']);
+  for (const s of squeeze.SPOTS.filter((x) => x.hero && !x.judgement && x.options.includes('3bet'))) {
+    assert.deepEqual(adviseSqueeze(s).correct, s.correct, s.id);
+  }
+});
+
+test('the book decides steals and blind defence', () => {
+  const steal = (seat, hand, reads) => adviseSteal({ hero: { seat, hand }, reads }).correct;
+  const nits = { SB: 'nit', BB: 'nit' };
+  assert.deepEqual(steal('BTN', 'AJo'), ['open']);
+  assert.deepEqual(steal('BTN', 'T8o'), ['fold']);
+  assert.deepEqual(steal('BTN', 'T8o', nits), ['open']);
+  assert.deepEqual(steal('BTN', 'T8o', { SB: 'nit', BB: 'station' }), ['fold']);
+  assert.deepEqual(steal('BTN', 'AJo', { BB: 'station' }), ['open']);
+  assert.deepEqual(steal('CO', '72o', nits), ['fold']);
+  assert.equal(stealSize({ hero: { seat: 'BTN', hand: 'AA' } }, true, '').correct, 'small');
+
+  const defend = (seat, hand) => adviseDefend({ hero: { seat, hand }, action: [['BTN', 'raise', 3]] }).correct;
+  assert.deepEqual(defend('SB', 'AQo'), ['3bet']);
+  assert.deepEqual(defend('SB', '22'), ['fold']);
+  assert.deepEqual(defend('BB', '22'), ['call']);
+  assert.deepEqual(defend('SB', 'KTo'), ['call']);
+  assert.deepEqual(defend('BB', 'A6o'), ['fold']);
+  assert.deepEqual(defend('BB', 'A7o'), ['call']);
+
+  // The written hands agree with the same rules.
+  for (const s of blinds.SPOTS.filter((x) => x.hero && x.hero.hand && x.options.every((o) => typeof o === 'string'))) {
+    const engine = s.options.includes('open') ? adviseSteal(s) : adviseDefend(s);
+    assert.deepEqual(engine.correct, s.correct, s.id);
+  }
+});
+
+test('a short-stacked limper changes what raises', () => {
+  const play = (hand, stack) => adviseLimped({ hero: { seat: 'BTN', hand }, stacks: { MP: stack }, action: [['MP', 'limp']] }).correct;
+  assert.deepEqual(play('AJo', 25), ['iso']);
+  assert.deepEqual(play('99', 25), ['iso']);
+  assert.deepEqual(play('76s', 25), ['limp', 'fold']);
+  assert.deepEqual(play('76s', 100), ['iso', 'limp']);
+  assert.deepEqual(play('72o', 25), ['fold']);
+});
+
+test('the squeeze and blind spots are well formed', () => {
+  const check = (spots, lessons) => {
+    const ids = new Set();
+    for (const s of spots) {
+      assert.ok(!ids.has(s.id), s.id);
+      ids.add(s.id);
+      const options = s.options.map((o) => (typeof o === 'string' ? o : o.id));
+      assert.ok(s.correct.length && s.correct.every((id) => options.includes(id)), s.id);
+      assert.ok(lessons.some((l) => l.id === s.lesson), s.id);
+      assert.ok(s.why && s.title, s.id);
+      if (s.hero) readSpot(s);
+    }
+  };
+  check(squeeze.SPOTS, squeeze.LESSONS);
+  check(blinds.SPOTS, blinds.LESSONS);
 });

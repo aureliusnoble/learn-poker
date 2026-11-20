@@ -1,16 +1,43 @@
 // Bet sizes as a second question: once the right raise is chosen, how big?
 import { THREE_BET_SIZE, FOUR_BET } from './data/threebet.js';
 import { ISO_SIZE } from './data/limpers.js';
+import { SQUEEZE_PER_CALLER } from './data/squeeze.js';
+import { SMALL_STEAL } from './data/blinds.js';
+import { OPEN_SIZE_BB } from './ranges.js';
 import { readSpot, bb } from './table.js';
 
 const where = (inPosition) => (inPosition ? 'In position' : 'Out of position');
 
-/** The size question for a spot where the hero 3-bets an open-raise. */
+/**
+ * The size question for a spot where the hero 3-bets an open-raise. With
+ * callers in between it is a squeeze, and each caller adds to the size.
+ * `spot.sizeBase` sizes it from a different raise than the one made (a min-raise).
+ */
 export function threeBetSize(spot) {
   const info = readSpot(spot);
-  const open = info.high;
+  const open = spot.sizeBase || info.high;
   const ip = info.inPosition;
   const mult = ip ? THREE_BET_SIZE.inPosition : THREE_BET_SIZE.outOfPosition;
+  const n = info.callers.length;
+  if (n) {
+    const extra = n * SQUEEZE_PER_CALLER;
+    const { inPosition: big, outOfPosition: small } = THREE_BET_SIZE;
+    const based = spot.sizeBase ? ` Size it from a ${bb(open)} raise, not their ${bb(info.high)} one.` : '';
+    return {
+      when: '3bet',
+      key: `squeeze:${ip ? 'ip' : 'oop'}:${n}`,
+      question: 'How big is your squeeze?',
+      // The two 3-bet sizes, with and without the extra for the callers.
+      options: [
+        { id: 'small', label: bb(small * open) },
+        { id: 'big', label: bb(big * open) },
+        { id: 'small+', label: bb(small * open + extra) },
+        { id: 'big+', label: bb(big * open + extra) },
+      ],
+      correct: ip ? 'big+' : 'small+',
+      why: `${where(ip)}, 3-bet to ${mult} times their raise and add ${bb(SQUEEZE_PER_CALLER)} for each caller: ${mult} × ${bb(open)} + ${bb(extra)} = ${bb(mult * open + extra)}.${based}`,
+    };
+  }
   return {
     when: '3bet',
     key: `3bet:${ip ? 'ip' : 'oop'}`,
@@ -56,5 +83,24 @@ export function isoSize(spot) {
     options: [4, 5, 6, 7].map((v) => ({ id: String(v), label: bb(v) })),
     correct: String(size),
     why: `3bb, plus 1bb for each limper${oop ? ', plus 1bb out of position' : ''}: 3 + ${n}${oop ? ' + 1' : ''} = ${bb(size)}.`,
+  };
+}
+
+/**
+ * The size question for an open-raise that is a steal. `small` is true against
+ * blinds that fold a lot or 3-bet a lot, where the raise should risk less.
+ */
+export function stealSize(spot, small, why) {
+  return {
+    when: 'open',
+    key: `steal:${small ? 'small' : 'std'}`,
+    question: 'How big do you open?',
+    options: [
+      { id: 'small', label: `${SMALL_STEAL[0]}bb to ${SMALL_STEAL[1]}bb` },
+      { id: 'std', label: bb(OPEN_SIZE_BB) },
+      { id: 'big', label: bb(OPEN_SIZE_BB + 1.5) },
+    ],
+    correct: small ? 'small' : 'std',
+    why,
   };
 }

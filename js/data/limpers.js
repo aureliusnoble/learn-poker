@@ -17,6 +17,12 @@ export const ISO = {
 /** The potential range for limping behind other limpers. */
 export const OVER_LIMP = ['77-22', 'A9s-A2s', 'K9s', 'Q9s', 'J9s+', 'T8s+', '97s+', '86s+', '76s', '65s', '54s'];
 
+/**
+ * Against a limper with this many big blinds or fewer, raise only hands you
+ * would call an all-in with. The rest limp behind or fold.
+ */
+export const SHORT_STACK = { max: 30, raise: ['99+', 'AJs+', 'AJo+'] };
+
 /** Default isolation raise: 3bb, plus 1bb per limper, plus 1bb out of position. */
 export const ISO_SIZE = { base: 3, perLimper: 1, outOfPosition: 1 };
 
@@ -93,7 +99,8 @@ export const LESSONS = [
       '3bb, plus 1bb for every limper, plus 1bb if you are out of position.',
       'If several limpers keep calling, add 1bb at a time until only one calls or they all fold.',
       'With JJ+ and AQ+, raise as much as will still get called. They keep their edge in a crowd: 69% against one caller, 52% against two, 42% against three.',
-      'Against a stack of 30bb or less, raise smaller (2.5bb to 3bb) with hands you would not call a shove with, like KTs or 66. With AQs or TT, raise the normal size and call the shove.',
+      'Against a stack of 30bb or less, raise only hands you would call an all-in with: AJ+ and 99+. Raise those the normal size and call the shove.',
+      'If you do raise a weaker hand such as KTs or 66 against a short stack, make it 2.5bb to 3bb.',
     ],
   },
   {
@@ -113,6 +120,7 @@ export const LESSONS = [
       'Do not limp when an aggressive player who raises limpers is still to act. Raise your better hands yourself and fold the rest.',
       'Reasons to limp behind: a weak hand that can make something big, several limpers already in so nobody is folding, or shallow stacks with passive players left to act.',
       'The hands: suited aces A9s-A2s, pairs 77-22, and suited connectors and gappers down to 54s.',
+      'Against a limper with 30bb or less, the hands you would not call an all-in with limp behind or fold. Fold most of them if a raiser is still to act.',
     ],
   },
 ];
@@ -135,6 +143,7 @@ export const CHEAT = [
       ['Raise', '88+, AJs+, KJs+, QJs, AJo+, KJo+'],
       ['Optional: raise or limp', '77-22, ATs-A2s, KTs, K9s, QTs, Q9s, JTs, J9s, T9s, 98s, 87s, QJo, ATo, KTo, QTo, JTo'],
       ['Limp behind', '77-22, A9s-A2s, K9s, Q9s, J9s+, T8s+, 97s+, 86s+, 76s, 65s, 54s'],
+      ['Limper has 30bb or less', 'Raise only AJ+ and 99+ · limp or fold the rest'],
       ['Be the first to limp', 'Never'],
     ],
   },
@@ -188,6 +197,7 @@ export const FACTS = [
   { id: 'loose', q: 'Which stats are a weak-loose limper?', a: 'Plays 50%, raises 8%', wrong: ['Plays 15%, raises 6%', 'Plays 24%, raises 21%', 'Plays 12%, raises 11%'], why: 'A huge range of hands, almost all of them limped.' },
   { id: 'station', q: 'Against a calling station, raise hands that...', a: 'Win at showdown', wrong: ['Need them to fold', 'Are suited and small', 'You would usually fold'], why: 'They will not fold, so the hand has to be good.' },
   { id: 'short', q: 'A 30bb stack limps and you hold KTs. Raise to...', a: '2.5bb to 3bb', wrong: ['4bb', '6bb', 'All-in'], why: 'Raise less with a hand you would not call an all-in with.' },
+  { id: 'short-raise', q: 'The limper has only 25bb. Which hands still raise?', a: 'AJ+ and 99+', wrong: ['The whole default range', 'Any suited connector', 'Nothing at all'], why: 'A short stack can move all-in over your raise, so raise only hands you would call that with.' },
   { id: 'first', q: 'Being the first player to limp is...', a: 'Something to avoid', wrong: ['The default from early seats', 'Right with small pairs', 'Right on the button'], why: 'Raise or fold when nobody has entered the pot. Limping is only for behind other limpers.' },
 ];
 
@@ -242,6 +252,31 @@ export const SPOTS = [
     options: ['fold', 'limp', 'iso'],
     correct: ['fold'],
     why: 'K8o is not in the default range or the optional one. Even against a limper who folds a lot, the book keeps the raising range conservative.',
+  },
+  {
+    id: 'iso-book-overlimp',
+    source: 'book',
+    lesson: 'overlimp',
+    title: 'Two passive limpers',
+    hero: { seat: 'BTN', hand: 'J9s', stack: 98 },
+    stacks: { UTG: 80, MP: 48, BB: 170 },
+    reads: { UTG: 'passive', MP: 'passive', BB: 'passive' },
+    action: [['UTG', 'limp'], ['MP', 'limp']],
+    options: ['fold', 'limp', 'iso'],
+    correct: ['limp'],
+    why: 'Two loose, passive limpers are in and another passive player is in the big blind. In position with a hand that can make something big, limping behind beats raising. In the book this hand flopped two pair and won a 227bb pot.',
+  },
+  {
+    id: 'iso-derived-short',
+    source: 'derived',
+    lesson: 'overlimp',
+    title: 'A short stack limps',
+    hero: { seat: 'BTN', hand: '76s' },
+    stacks: { MP: 24 },
+    action: [['MP', 'limp']],
+    options: ['fold', 'limp', 'iso'],
+    correct: ['limp', 'fold'],
+    why: 'The limper has 24bb and can move all-in over a raise, so raise only hands you would call that with: AJ+ and 99+. With 76s, limp behind if the players left to act are passive, or fold.',
   },
   {
     id: 'iso-derived-raiser',

@@ -36,7 +36,7 @@ export const CALL_CHARTS = [
     gap: ['JJ-88', 'AQs-AJs', 'KJs+', 'QJs', 'AQo+'],
     weaker: ['77-22', 'ATs', 'JTs-76s'],
     value3bet: ['QQ+', 'AKs'],
-    optional3bet: ['JJ', 'AQo+'],
+    optional3bet: ['JJ', 'AKo', 'AQs'],
   },
   {
     id: 'CO',

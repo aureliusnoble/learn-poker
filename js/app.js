@@ -11,6 +11,8 @@ import { learnThreeBet, chartDrill, spotsDrill, progressThreeBet } from './three
 import { learnCall, callDrill, callSpots, setTool, setDrill, progressCall } from './coldcall/pages.js';
 import { simulator, simReport, seatDrill, sizeDrill, factsDrill } from './play.js';
 import { learnLimp, limpDrill, limpSpots, progressLimp } from './limp/pages.js';
+import { learnSqueeze, squeezeDrill, squeezeSpots, progressSqueeze } from './squeeze/pages.js';
+import { learnBlinds, stealDrill, defendDrill, blindSums, progressBlinds } from './blinds/pages.js';
 
 const ROUTES = {
   home,
@@ -40,10 +42,19 @@ const ROUTES = {
   'limp-drill': limpDrill,
   'limp-spots': limpSpots,
   'limp-progress': progressLimp,
+  'sq-learn': learnSqueeze,
+  'sq-drill': squeezeDrill,
+  'sq-spots': squeezeSpots,
+  'sq-progress': progressSqueeze,
+  'bl-learn': learnBlinds,
+  'bl-steal': stealDrill,
+  'bl-defend': defendDrill,
+  'bl-sums': blindSums,
+  'bl-progress': progressBlinds,
 };
 
 // Pages that only report progress, so they can be redrawn when synced progress arrives.
-const PASSIVE = new Set(['home', 'report', 'open-progress', 'tb-progress', 'call-progress', 'limp-progress']);
+const PASSIVE = new Set(['home', 'report', 'open-progress', 'tb-progress', 'call-progress', 'limp-progress', 'sq-progress', 'bl-progress']);
 
 const root = document.getElementById('app');
 let current = 'home';
