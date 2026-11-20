@@ -2,6 +2,7 @@
 // which chart a hand belongs on.
 import { CHARTS as RAW } from '../data/threebet.js';
 import { makeChart, handsIn } from '../charts.js';
+import { expand } from '../ranges.js';
 import { stat } from '../store.js';
 import { weightedPick } from '../dom.js';
 import { boxWeight, edgeWeight } from '../drill.js';
@@ -35,7 +36,8 @@ export function nextChartSpot(getFilter) {
     const chart = filter === 'ALL' ? pick(CHARTS) : CHARTS.find((c) => c.id === filter);
     const setting = SETTING[chart.id];
     const want = pick([null, ...chart.categories.map((c) => c.id), ...chart.categories.map((c) => c.id)]);
-    const all = handsIn(chart, want);
+    const skip = new Set((chart.skip || []).flatMap(expand));
+    const all = handsIn(chart, want).filter((hand) => !skip.has(hand));
     const fresh = all.filter((hand) => !round.recent.includes(`${chart.id}:${hand}`));
     const hand = weightedPick(fresh.length ? fresh : all,
       (x) => edgeWeight(chart.dist.get(x)) * boxWeight(stat(TOPIC, 'hands', `${chart.id}:${x}`)));

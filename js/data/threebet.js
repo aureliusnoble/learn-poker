@@ -34,6 +34,9 @@ export const CHARTS = [
     blurb: 'Against someone who opens a wide range, hands that would usually just call become value 3-bets.',
     // The source chart shades only these hands. The premium hands are 3-bet as well.
     note: 'The chart shows only the hands that get added. Your premium hands are still 3-bet.',
+    // Not asked about on this chart: premium hands are 3-bet whatever the chart
+    // says, and the text names AJs and 99 as merged hands without shading them.
+    skip: ['99+', 'AJs+', 'AQo+'],
     categories: [{ id: 'merged', label: 'Merged 3-bet', tokens: ['ATs-A9s', 'KTs+', 'QTs+', 'AJo', 'KQo'] }],
   },
 ];
