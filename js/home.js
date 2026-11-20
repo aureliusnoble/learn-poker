@@ -9,6 +9,7 @@ import { SPOTS as TB_SPOTS } from './data/threebet.js';
 import { CALL_SPOTS, SET_SPOTS } from './data/coldcall.js';
 import { ALL_FACTS } from './play.js';
 import { SPOTS as LIMP_SPOTS } from './data/limpers.js';
+import { installCard } from './install.js';
 
 const STORAGE_NOTE = {
   account: 'Progress is saved to your account and follows you between devices.',
@@ -151,6 +152,7 @@ export function home(root) {
       ],
     }),
 
+    installCard(),
     h('p', { class: 'footnote' }, STORAGE_NOTE[storageMode()]),
   );
 }

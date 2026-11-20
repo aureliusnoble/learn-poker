@@ -272,6 +272,9 @@ button { font: inherit; color: inherit; }
   color: var(--ink);
   font-size: 0.9375rem;
 }
+.install { display: grid; gap: 8px; margin-top: 18px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.install:empty { display: none; }
+.install p { color: var(--ink-2); }
 .footnote { margin-top: auto; padding-top: 8px; color: var(--muted); font-size: 0.8125rem; }
 .block { display: flex; flex-direction: column; gap: 10px; }
 .hand { font: 600 1.0625rem/1 var(--font-display); letter-spacing: 0.02em; }
