@@ -26,7 +26,7 @@ import { readSpot, tableView, spotFacts, readsList, optionLabel, optionPhrase, S
 import { factorList, setMath, rangeLens } from './feedback.js';
 
 // Answers that decline to act are drawn quietly; the active ones carry the colour.
-const QUIET = new Set(['fold', 'pass', 'none', 'no']);
+const QUIET = new Set(['fold', 'check', 'pass', 'none', 'no']);
 
 const DEFAULT_QUESTION = {
   1: 'Raise or fold?',
@@ -34,6 +34,19 @@ const DEFAULT_QUESTION = {
   3: 'They 3-bet. What now?',
   4: 'They 4-bet. What now?',
 };
+
+const RAISES = new Set(['raise', 'iso', '3bet', '4bet', 'jam']);
+const FLATS = new Set(['call', 'limp', 'check', 'pass']);
+
+/** The kind of mistake a wrong answer is, when the spot does not say. */
+export function inferLeak(spot, id) {
+  const right = spot.correct;
+  if (id === 'fold') return 'tight';
+  if (right.every((x) => x === 'fold')) return RAISES.has(id) || FLATS.has(id) ? 'loose' : null;
+  if (FLATS.has(id) && right.every((x) => RAISES.has(x))) return 'passive';
+  if (RAISES.has(id) && right.every((x) => FLATS.has(x))) return 'wild';
+  return null;
+}
 
 /** Picks from a fixed list of spots: unsettled ones first, nothing just seen. */
 export function deckOf(spots, topic, bucket) {
@@ -45,7 +58,7 @@ export function deckOf(spots, topic, bucket) {
 
 /**
  * cfg: { title, back, topic, bucket, total, next(round), criteria?,
- *        filter?: { options, get(), set(v), label }, depth? }
+ *        filter?: { options, get(), set(v), label }, depth?, onAnswer?(spot, result) }
  */
 export function spotDrill(root, cfg) {
   const main = shell(root, { title: cfg.title, back: cfg.back });
@@ -96,7 +109,7 @@ export function spotDrill(root, cfg) {
       if (view) view.finish();
       return draw();
     }
-    finish({ id, ok, leak: ok ? null : (spot.leaks || {})[id] || null });
+    finish({ id, ok, leak: ok ? null : (spot.leaks || {})[id] || inferLeak(spot, id) });
   }
 
   function answerSize(sizeId) {
@@ -119,6 +132,7 @@ export function spotDrill(root, cfg) {
     record(topic, bucket, keyOf(spot), res.ok);
     if (spot.quick) recordTime(topic, bucket, ms);
     if (res.leak) round.leaks[res.leak] = (round.leaks[res.leak] || 0) + 1;
+    if (cfg.onAnswer) cfg.onAnswer(spot, res);
     score(round, keyOf(spot), res.ok, spot.quick ? ms : null, spot);
     draw();
     if (res.ok && spot.quick) timer = setTimeout(advance, 950);
@@ -175,7 +189,7 @@ export function spotDrill(root, cfg) {
         result.leak ? h('span', { class: 'pill pill--missed' }, LEAKS[result.leak].name) : null),
       h('p', { class: 'feedback__rule' }, spot.why),
       sized && (result.sizeId || !result.ok) ? h('p', { class: 'feedback__rule' }, spot.size.why) : null,
-      spot.factors && cfg.criteria ? factorList(spot.factors, cfg.criteria) : null,
+      spot.factors && (spot.criteria || cfg.criteria) ? factorList(spot.factors, spot.criteria || cfg.criteria) : null,
       spot.math ? setMath(spot.math) : null,
       spot.lens ? rangeLens(spot.lens.chart, spot.lens.hand) : null);
   }
@@ -203,14 +217,20 @@ export function spotDrill(root, cfg) {
       }, o.label);
     };
 
+    const limpers = info && info.level === 1 ? info.limpers.length : 0;
     const question = sizing ? spot.size.question
-      : spot.question || DEFAULT_QUESTION[info ? info.level : 2];
+      : spot.question
+      || (limpers ? `${limpers === 1 ? 'A limper' : `${limpers} limpers`} in front. What is your play?` : DEFAULT_QUESTION[info ? info.level : 2]);
     const showChoices = !done || (result.ok && spot.quick);
     // After a size answer, show the sizes; otherwise the plays.
     const shown = done && result.sizeId ? spot.size.options : opts;
 
     fill(main,
-      filter ? segmented(filter.options, filter.get(), (v) => { filter.set(v); if (done) draw(); else ask(); }, filter.label) : null,
+      filter ? segmented(filter.options, filter.get(), (v) => {
+        filter.set(v);
+        round.retry = []; // missed hands from the old selection do not follow you into the new one
+        if (done) advance(); else ask();
+      }, filter.label) : null,
       progressRow(round),
       spot.banner ? h('p', { class: 'banner' }, spot.banner) : null,
       spot.hero

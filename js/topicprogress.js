@@ -69,7 +69,9 @@ export function topicProgress(root, cfg) {
     }
     return h('section', { class: 'block' },
       h('h2', { class: 'h2' }, 'Where the misses are'),
-      segmented(list.map((c) => ({ value: c.id, label: c.name })), chart.id, (id) => { view.chart = id; view.focus = null; draw(); }, 'Chart'),
+      list.length > 1
+        ? segmented(list.map((c) => ({ value: c.id, label: c.name })), chart.id, (id) => { view.chart = id; view.focus = null; draw(); }, 'Chart')
+        : null,
       grid.el,
       heatScale(),
       detail);

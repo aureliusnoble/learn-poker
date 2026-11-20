@@ -9,11 +9,13 @@ import { paintDrill } from './preflop/paint.js';
 import { progressOpen } from './preflop/progress.js';
 import { learnThreeBet, chartDrill, spotsDrill, progressThreeBet } from './threebet/pages.js';
 import { learnCall, callDrill, callSpots, setTool, setDrill, progressCall } from './coldcall/pages.js';
-import { playHands, seatDrill, sizeDrill, factsDrill } from './play.js';
+import { simulator, simReport, seatDrill, sizeDrill, factsDrill } from './play.js';
+import { learnLimp, limpDrill, limpSpots, progressLimp } from './limp/pages.js';
 
 const ROUTES = {
   home,
-  play: playHands,
+  play: simulator,
+  report: simReport,
   seats: seatDrill,
   sizes: sizeDrill,
   facts: factsDrill,
@@ -34,10 +36,14 @@ const ROUTES = {
   'call-tool': setTool,
   'call-sets': setDrill,
   'call-progress': progressCall,
+  'limp-learn': learnLimp,
+  'limp-drill': limpDrill,
+  'limp-spots': limpSpots,
+  'limp-progress': progressLimp,
 };
 
 // Pages that only report progress, so they can be redrawn when synced progress arrives.
-const PASSIVE = new Set(['home', 'open-progress', 'tb-progress', 'call-progress']);
+const PASSIVE = new Set(['home', 'report', 'open-progress', 'tb-progress', 'call-progress', 'limp-progress']);
 
 const root = document.getElementById('app');
 let current = 'home';

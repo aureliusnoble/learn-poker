@@ -1,5 +1,6 @@
 // Bet sizes as a second question: once the right raise is chosen, how big?
 import { THREE_BET_SIZE, FOUR_BET } from './data/threebet.js';
+import { ISO_SIZE } from './data/limpers.js';
 import { readSpot, bb } from './table.js';
 
 const where = (inPosition) => (inPosition ? 'In position' : 'Out of position');
@@ -39,5 +40,21 @@ export function fourBetSize(spot) {
     ],
     correct: ip ? 'ip' : 'oop',
     why: `${where(ip)}, 4-bet to ${a} to ${b} times their 3-bet: ${span([a, b])}.`,
+  };
+}
+
+/** The size question for a spot where the hero raises one or more limpers. */
+export function isoSize(spot) {
+  const info = readSpot(spot);
+  const n = info.limpers.length;
+  const oop = !info.inPosition;
+  const size = ISO_SIZE.base + n * ISO_SIZE.perLimper + (oop ? ISO_SIZE.outOfPosition : 0);
+  return {
+    when: 'iso',
+    key: `iso:${n}:${oop ? 'oop' : 'ip'}`,
+    question: 'How big is the default raise?',
+    options: [4, 5, 6, 7].map((v) => ({ id: String(v), label: bb(v) })),
+    correct: String(size),
+    why: `3bb, plus 1bb for each limper${oop ? ', plus 1bb out of position' : ''}: 3 + ${n}${oop ? ' + 1' : ''} = ${bb(size)}.`,
   };
 }

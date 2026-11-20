@@ -21,9 +21,10 @@ export const settled = (item) => (item ? Math.min(item.b, SOLID) / SOLID : 0);
 export const LEAKS = {
   loose: { name: 'Too loose', tip: 'You put chips in with hands that fold. The ranges are tighter than they feel: when it is not on the chart, let it go.' },
   tight: { name: 'Too tight', tip: 'You folded hands that play. Look again at the bottom of each range, especially from the later seats.' },
-  passive: { name: 'Too passive', tip: 'You called with a hand strong enough to 3-bet for value. Premium hands want a bigger pot.' },
-  wild: { name: 'Overplayed', tip: 'You 3-bet a hand that is only strong enough to call. Ask whether worse hands would call the 3-bet.' },
-  size: { name: 'Wrong size', tip: 'Size a raise from their bet, not from the blinds, and check whether you are in or out of position first. The multiples are on the 3-betting cheat sheet.' },
+  passive: { name: 'Too passive', tip: 'You called or limped with a hand strong enough to raise for value. Strong hands want a bigger pot.' },
+  wild: { name: 'Overplayed', tip: 'You raised a hand that is only strong enough to call or limp. Ask whether worse hands would call the raise.' },
+  limpraise: { name: 'Limped into a raiser', tip: 'With an aggressive raiser still to act, do not limp. Raise the better hands yourself and fold the rest.' },
+  size: { name: 'Wrong size', tip: 'Check whether you are in or out of position first. 3-bets and 4-bets are multiples of their bet; a raise over limpers is 3bb plus 1bb per limper, plus 1bb out of position.' },
   seat: { name: 'Wrong seat', tip: 'Find the dealer button and count: button, then small blind, big blind. Going the other way from the button: cutoff, middle position, under the gun.' },
 };
 

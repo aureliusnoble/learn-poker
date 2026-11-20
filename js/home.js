@@ -8,6 +8,7 @@ import { TOPIC as OPEN, totals, edgesKnown, weakest } from './preflop/model.js';
 import { SPOTS as TB_SPOTS } from './data/threebet.js';
 import { CALL_SPOTS, SET_SPOTS } from './data/coldcall.js';
 import { ALL_FACTS } from './play.js';
+import { SPOTS as LIMP_SPOTS } from './data/limpers.js';
 
 const STORAGE_NOTE = {
   account: 'Progress is saved to your account and follows you between devices.',
@@ -72,6 +73,7 @@ export function home(root) {
   const callKnown = known('coldcall', 'spots', CALL_SPOTS);
   const setKnown = known('coldcall', 'sets', SET_SPOTS);
   const callTotal = CALL_SPOTS.length + SET_SPOTS.length;
+  const limpKnown = known('limp', 'spots', LIMP_SPOTS);
 
   fill(main,
     h('p', { class: 'lede' }, lede),
@@ -79,9 +81,10 @@ export function home(root) {
     topic({
       eyebrow: 'At the table',
       title: 'Play',
-      blurb: 'Hands dealt at a table of four to six. Decide, size the raise, and see what the mistake was when there is one.',
+      blurb: 'Every situation from the tutorials, dealt at a table of four to six and marked against the book.',
       items: [
-        { route: 'play', title: 'Play hands', text: 'Open, call, 3-bet or fold, hand after hand', stat: accuracy('coldcall', 'hands', 'Start here'), main: true },
+        { route: 'play', title: 'Pre-flop simulator', text: 'Any situation: decide, size the raise, see the mistake', stat: accuracy('sim', 'situations', 'Start here'), main: true },
+        { route: 'report', title: 'Simulator report', text: 'Where you leave the book: by situation, seat and leak' },
         { route: 'seats', title: 'Find your seat', text: 'Read your position from the dealer button', stat: accuracy('table', 'seats') },
         { route: 'sizes', title: 'Size the raise', text: '3-bets and 4-bets, in and out of position', stat: accuracy('table', 'sizes') },
         { route: 'facts', title: 'Quick facts', text: 'The numbers and rules to know by heart', stat: `${factsKnown}/${ALL_FACTS.length}` },
@@ -131,6 +134,20 @@ export function home(root) {
         { route: 'call-tool', title: 'Set-mining sums', text: 'Slide the call and the stack, see what the rule says' },
         { route: 'call-sets', title: 'Set mining', text: 'The 15-to-1 rule, then whole hands', stat: `${setKnown}/${SET_SPOTS.length}` },
         { route: 'call-progress', title: 'Progress', text: 'Misses by chart, and each hand' },
+      ],
+    }),
+
+    topic({
+      eyebrow: 'Pre-flop · 4',
+      title: 'Limpers',
+      blurb: 'Someone calls the big blind in front of you. When to raise them, how big, and when to limp behind.',
+      progress: limpKnown / LIMP_SPOTS.length,
+      label: 'of spots known',
+      items: [
+        { route: 'limp-learn', title: 'Cheat sheet', text: 'The size formula, what to raise, what to limp' },
+        { route: 'limp-drill', title: 'Limpers in front', text: 'Raise, limp behind or fold, then size it', stat: accuracy('limp', 'hands'), main: true },
+        { route: 'limp-spots', title: 'Read the limper', text: 'Tight or loose, short stacks, raisers behind', stat: `${limpKnown}/${LIMP_SPOTS.length}` },
+        { route: 'limp-progress', title: 'Progress', text: 'Misses by hand, and each spot' },
       ],
     }),
 

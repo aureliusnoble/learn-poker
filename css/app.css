@@ -594,6 +594,8 @@ button { font: inherit; color: inherit; }
   gap: 4px 10px;
 }
 .seatrows--single { grid-template-columns: minmax(0, 1fr) auto; }
+.seatrows--wide li { grid-template-columns: 7.5rem minmax(0, 1fr) 2.75rem; }
+.seatrows--wide .seatrows__name { font-size: 0.9375rem; letter-spacing: 0.02em; line-height: 1.1; }
 .seatrows__name { font: 600 1rem/1 var(--font-display); letter-spacing: 0.05em; }
 .seatrows__num { text-align: right; font: 600 1rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .seatrows li .seatrows__acc { grid-column: 2 / -1; }
@@ -697,6 +699,9 @@ button { font: inherit; color: inherit; }
 .ptable--anon .tseat__pos b { display: none; }
 .ptable--anon .tseat:not(.tseat--hero) .tseat__pos { display: none; }
 .ptable--anon .tbet__act { display: none; }
+
+/* Five-handed there is no seat at the top, so the pot sits there, clear of the blinds' chips. */
+.ptable--5 .tpot { top: 18%; }
 
 .tbet {
   position: absolute;

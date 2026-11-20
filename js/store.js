@@ -13,6 +13,8 @@ const TOPICS = {
   threebet: ['hands', 'spots', 'facts', 'time'],
   coldcall: ['hands', 'spots', 'sets', 'facts', 'time'],
   table: ['seats', 'sizes', 'time'],
+  limp: ['hands', 'spots', 'facts', 'time'],
+  sim: ['situations', 'seats', 'leaks', 'time'],
 };
 
 function blank() {

@@ -44,6 +44,9 @@ export const PLAYER_TYPES = {
   rec: { tag: 'Rec', text: 'Recreational: plays for fun and calls too much.' },
   maniac: { tag: 'Maniac', text: 'Bad and aggressive: bets and bluffs far too often.' },
   aggro3b: { tag: '3-bettor', text: 'Aggressive 3-bettor: re-raises often, bluffs included.' },
+  weaktight: { tag: 'Weak-tight', text: 'Weak-tight: limps decent hands, then folds to raises and bets unless the flop helps.' },
+  station: { tag: 'Station', text: 'Weak-loose calling station: limps almost anything and hates to fold.' },
+  isoraiser: { tag: 'Raiser', text: 'Aggressive: raises limpers often.' },
 };
 
 export const bb = (n) => `${Number.isInteger(n) ? n : Number(n.toFixed(2))}bb`;
@@ -74,6 +77,7 @@ export function readSpot(spot) {
   let high = 1; // the bet to match
   let last = -1; // seat index of the last actor
   let aggressor = null;
+  const limpers = []; // seats that called before anyone raised
 
   const fold = (seat) => {
     seats[seat].status = 'folded';
@@ -99,10 +103,12 @@ export function readSpot(spot) {
       seats[seat].put = to;
       seats[seat].status = 'raised';
       seats[seat].label = RAISE_NAME[level] || 'Raise';
-    } else if (kind === 'call') {
+    } else if (kind === 'call' || kind === 'limp') {
+      // A call before anyone has raised is a limp.
+      if (level === 1) limpers.push(seat);
       seats[seat].put = high;
       seats[seat].status = 'called';
-      seats[seat].label = 'Call';
+      seats[seat].label = level === 1 ? 'Limp' : 'Call';
     } else {
       seats[seat].status = 'folded';
       seats[seat].label = 'Fold';
@@ -134,7 +140,10 @@ export function readSpot(spot) {
     toCall: high - seats[hero].put,
     level, // 1: nobody has raised, 2: facing an open, 3: facing a 3-bet, 4: facing a 4-bet
     villain: aggressor,
-    inPosition: aggressor ? hasPosition(hero, aggressor) : null,
+    limpers,
+    // Position is measured against the raiser, or against every limper when nobody has raised.
+    inPosition: aggressor ? hasPosition(hero, aggressor)
+      : limpers.length ? limpers.every((seat) => hasPosition(hero, seat)) : null,
     behind,
     stackOf,
     effective: aggressor ? Math.min(stackOf(hero), stackOf(aggressor)) : stackOf(hero),
@@ -150,6 +159,9 @@ export function optionLabel(id, info) {
     case '3bet': return '3-bet';
     case '4bet': return '4-bet';
     case 'jam': return 'All-in';
+    case 'iso': return 'Raise';
+    case 'limp': return `Limp ${bb(info.toCall)}`;
+    case 'check': return 'Check';
     case 'pass': return info.level >= 3 ? 'No 4-bet' : 'No 3-bet';
     default: return id;
   }
@@ -164,6 +176,9 @@ export function optionPhrase(id, info) {
     case '3bet': return '3-bet';
     case '4bet': return '4-bet';
     case 'jam': return 'go all-in';
+    case 'iso': return 'raise';
+    case 'limp': return 'limp behind';
+    case 'check': return 'check';
     case 'pass': return info.level >= 3 ? 'not 4-bet' : 'not 3-bet';
     default: return id;
   }
@@ -242,7 +257,11 @@ export function tableView(spot, info, { suits, animate = true, hideSeats = false
   // A sentence for screen readers, since the picture carries the story.
   const story = info.frames
     .filter((f) => f.step && f.step.kind !== 'fold')
-    .map((f) => `${f.step.seat === hero ? 'You' : f.step.seat} ${f.seats[f.step.seat].label.toLowerCase()} to ${bb(f.seats[f.step.seat].put)}`)
+    .map((f) => {
+      const s = f.seats[f.step.seat];
+      const verb = s.label === 'Limp' ? 'limps for' : s.label === 'Call' ? 'calls' : `${s.label.toLowerCase()}s to`;
+      return `${f.step.seat === hero ? 'You' : f.step.seat} ${verb} ${bb(s.put)}`;
+    })
     .join(', ');
   el.setAttribute('role', 'img');
   const label = () => el.setAttribute('aria-label',
@@ -281,7 +300,7 @@ export function tableView(spot, info, { suits, animate = true, hideSeats = false
 /** Pot, price and stack depth in one line under the table. */
 export function spotFacts(info, { depth = false } = {}) {
   const items = [['Pot', bb(info.pot)]];
-  if (info.level > 1 && info.toCall > 0) items.push(['To call', bb(info.toCall)]);
+  if ((info.level > 1 || info.limpers.length) && info.toCall > 0) items.push(['To call', bb(info.toCall)]);
   if (info.inPosition != null) items.push(['You are', info.inPosition ? 'in position' : 'out of position']);
   if (depth) items.push(['Effective stack', bb(info.effective)]);
   return h('dl', { class: 'facts' }, items.map(([k, v]) => h('div', null, h('dt', null, k), h('dd', null, v))));

@@ -185,3 +185,125 @@ test('raise sizes follow position', () => {
   assert.equal(label(fourBetSize({ hero: { seat: 'BTN', hand: 'AA' }, action: [['BTN', 'raise', 3], ['BB', 'raise', 10]] })), '20bb to 22bb');
   assert.equal(label(fourBetSize({ hero: { seat: 'CO', hand: 'AA' }, action: [['CO', 'raise', 3], ['BTN', 'raise', 10]] })), '22bb to 25bb');
 });
+
+// ---- Limpers
+
+import * as limpers from '../js/data/limpers.js';
+import { adviseLimped, nextLimpSpot, LIMP_CHART } from '../js/limp/model.js';
+import { isoSize } from '../js/sizing.js';
+
+test('limps are read off the table', () => {
+  const two = readSpot({ hero: { seat: 'BTN', hand: '44' }, action: [['UTG', 'limp'], ['MP', 'limp']] });
+  assert.deepEqual(two.limpers, ['UTG', 'MP']);
+  assert.equal(two.pot, 3.5);
+  assert.equal(two.toCall, 1);
+  assert.equal(two.inPosition, true);
+  assert.equal(readSpot({ hero: { seat: 'SB', hand: '44' }, action: [['BTN', 'limp']] }).inPosition, false);
+  assert.equal(readSpot({ hero: { seat: 'BB', hand: '44' }, action: [['CO', 'limp']] }).toCall, 0);
+});
+
+test('isolation raises are 3bb, plus 1bb a limper, plus 1bb out of position', () => {
+  const size = (hero, ...seats) => {
+    const s = isoSize({ hero: { seat: hero, hand: 'AA' }, action: seats.map((x) => [x, 'limp']) });
+    return s.options.find((o) => o.id === s.correct).label;
+  };
+  assert.deepEqual([size('BTN', 'UTG'), size('BTN', 'UTG', 'MP'), size('BTN', 'UTG', 'MP', 'CO')], ['4bb', '5bb', '6bb']);
+  assert.deepEqual([size('SB', 'CO'), size('SB', 'MP', 'CO'), size('BB', 'MP', 'CO', 'BTN')], ['5bb', '6bb', '7bb']);
+});
+
+test('the limper charts hold the hands the book shades', () => {
+  const count = (tokens) => new Set(tokens.flatMap(expand)).size;
+  assert.equal(count(limpers.ISO.default), 18);
+  assert.equal(count(limpers.ISO.optional), 29);
+  assert.equal(count(limpers.OVER_LIMP), 27);
+  const [tight, loose] = limpers.LIMPER_PROFILES;
+  assert.deepEqual([count(tight.raise), count(tight.limp)], [12, 13]);
+  assert.deepEqual([count(loose.raise), count(loose.limp)], [15, 81]);
+  assert.equal(LIMP_CHART.categoryOf('65s'), 'weaker');
+  assert.equal(LIMP_CHART.categoryOf('JTs'), 'merged');
+});
+
+test('the book decides hands behind a limper', () => {
+  const play = (spot) => adviseLimped(spot).correct;
+  const one = (hand, reads) => ({ hero: { seat: 'BTN', hand }, reads, action: [['UTG', 'limp']] });
+  assert.deepEqual(play(one('AJo')), ['iso']);
+  assert.deepEqual(play(one('K8o')), ['fold']);
+  assert.deepEqual(play(one('65s')), ['iso', 'limp']);
+  assert.deepEqual(play(one('65s', { UTG: 'station' })), ['limp']);
+  assert.deepEqual(play(one('KTs', { UTG: 'weaktight' })), ['iso']);
+  assert.deepEqual(play(one('76s', { SB: 'isoraiser' })), ['iso', 'fold']);
+  assert.deepEqual(play({ hero: { seat: 'BTN', hand: '44' }, action: [['UTG', 'limp'], ['MP', 'limp']] }), ['limp']);
+  assert.deepEqual(play({ hero: { seat: 'SB', hand: 'AQo' }, action: [['MP', 'limp'], ['CO', 'limp'], ['BTN', 'limp']] }), ['iso']);
+  assert.deepEqual(play({ hero: { seat: 'BB', hand: '72o' }, action: [['CO', 'limp']] }), ['check']);
+
+  // The written spots agree with the same rules.
+  for (const s of limpers.SPOTS.filter((x) => x.hero && x.options.includes('iso'))) {
+    assert.deepEqual([...play(s)].sort(), [...s.correct].sort(), s.id);
+  }
+  // And generated ones are always answerable.
+  for (let i = 0; i < 300; i++) {
+    const s = nextLimpSpot({ recent: [] });
+    assert.ok(s.correct.every((id) => s.options.includes(id)), JSON.stringify(s.hero));
+    assert.ok(readSpot(s).limpers.length >= 1);
+  }
+});
+
+test('the limper spots are well formed', () => {
+  const ids = new Set();
+  for (const s of limpers.SPOTS) {
+    assert.ok(!ids.has(s.id));
+    ids.add(s.id);
+    const options = s.options.map((o) => (typeof o === 'string' ? o : o.id));
+    assert.ok(s.correct.length && s.correct.every((id) => options.includes(id)), s.id);
+    assert.ok(limpers.LESSONS.some((l) => l.id === s.lesson), s.id);
+    if (s.hero) readSpot(s);
+  }
+});
+
+// ---- The pre-flop simulator
+
+import { SITUATIONS, BOOK_HANDS } from '../js/play.js';
+import { LEAKS } from '../js/drill.js';
+import { inferLeak } from '../js/spotdrill.js';
+
+test('every simulator situation deals hands the book can mark', () => {
+  const shape = {
+    open: (info) => info.level === 1 && info.limpers.length === 0,
+    limped: (info) => info.level === 1 && info.limpers.length >= 1,
+    raised: (info) => info.level === 2,
+    threebet: (info) => info.level === 3,
+    fourbet: (info) => info.level === 4,
+    book: () => true,
+  };
+  for (const situation of SITUATIONS) {
+    const seen = new Set();
+    for (let i = 0; i < 400; i++) {
+      const spot = situation.make({ recent: [] });
+      const info = readSpot(spot);
+      const at = `${situation.value} ${JSON.stringify(spot.hero)}`;
+      assert.ok(shape[situation.value](info), at);
+      assert.ok(spot.correct.length && spot.correct.every((id) => spot.options.includes(id)), at);
+      assert.ok(spot.why && spot.topic && spot.bucket && (spot.key || spot.id), at);
+      for (const [wrong, leak] of Object.entries(spot.leaks || {})) {
+        assert.ok(!spot.correct.includes(wrong), `${at}: ${wrong} is both right and a leak`);
+        assert.ok(LEAKS[leak], leak);
+      }
+      if (spot.size) {
+        assert.ok(spot.correct.includes(spot.size.when), at);
+        assert.ok(spot.size.options.some((o) => o.id === spot.size.correct), at);
+      }
+      seen.add(spot.key || spot.id);
+    }
+    assert.ok(seen.size >= 8, `${situation.value} only dealt ${seen.size} different hands`);
+  }
+  assert.ok(BOOK_HANDS.length >= 40);
+});
+
+test('a mistake is named even when the spot does not say', () => {
+  assert.equal(inferLeak({ correct: ['call'] }, 'fold'), 'tight');
+  assert.equal(inferLeak({ correct: ['fold'] }, 'call'), 'loose');
+  assert.equal(inferLeak({ correct: ['3bet'] }, 'pass'), 'passive');
+  assert.equal(inferLeak({ correct: ['pass'] }, '3bet'), 'wild');
+  assert.equal(inferLeak({ correct: ['limp'] }, 'iso'), 'wild');
+  assert.equal(inferLeak({ correct: ['no'] }, 'yes'), null);
+});
