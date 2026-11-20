@@ -7,6 +7,7 @@ import { SOLID } from './drill.js';
 import { TOPIC as OPEN, totals, edgesKnown, weakest } from './preflop/model.js';
 import { SPOTS as TB_SPOTS } from './data/threebet.js';
 import { CALL_SPOTS, SET_SPOTS } from './data/coldcall.js';
+import { ALL_FACTS } from './play.js';
 
 const STORAGE_NOTE = {
   account: 'Progress is saved to your account and follows you between devices.',
@@ -35,7 +36,7 @@ function topic({ eyebrow, title, blurb, progress, label, items }) {
     h('p', { class: 'eyebrow' }, eyebrow),
     h('h2', { class: 'topic__title' }, title),
     h('p', { class: 'topic__blurb' }, blurb),
-    h('div', { class: 'topic__meter' }, meter(progress, label), h('span', null, `${pct(progress)} ${label}`)),
+    progress == null ? null : h('div', { class: 'topic__meter' }, meter(progress, label), h('span', null, `${pct(progress)} ${label}`)),
     h('nav', { class: 'menu', 'aria-label': title }, items.map((it) =>
       h('a', { class: it.main ? 'menu__item menu__item--main' : 'menu__item', href: `#${it.route}` },
         h('span', { class: 'menu__text' },
@@ -62,6 +63,8 @@ export function home(root) {
   const perfect = (keys) => keys.filter((key) => (stat(OPEN, 'paint', key) || {}).best === 1).length;
   const layerKeys = LADDER.slice(1).map((to, i) => `${LADDER[i]}>${to}`);
 
+  const factsKnown = ALL_FACTS.filter((f) => (stat(f.topic, 'facts', f.key) || {}).b >= SOLID).length;
+
   // 3-betting
   const tbKnown = known('threebet', 'spots', TB_SPOTS);
 
@@ -74,18 +77,30 @@ export function home(root) {
     h('p', { class: 'lede' }, lede),
 
     topic({
+      eyebrow: 'At the table',
+      title: 'Play',
+      blurb: 'Hands dealt at a table of four to six. Decide, size the raise, and see what the mistake was when there is one.',
+      items: [
+        { route: 'play', title: 'Play hands', text: 'Open, call, 3-bet or fold, hand after hand', stat: accuracy('coldcall', 'hands', 'Start here'), main: true },
+        { route: 'seats', title: 'Find your seat', text: 'Read your position from the dealer button', stat: accuracy('table', 'seats') },
+        { route: 'sizes', title: 'Size the raise', text: '3-bets and 4-bets, in and out of position', stat: accuracy('table', 'sizes') },
+        { route: 'facts', title: 'Quick facts', text: 'The numbers and rules to know by heart', stat: `${factsKnown}/${ALL_FACTS.length}` },
+      ],
+    }),
+
+    topic({
       eyebrow: 'Pre-flop · 1',
       title: 'Opening ranges',
       blurb: `Which hands to open from each seat when everyone before you has folded. Every open is a raise to ${OPEN_SIZE_BB}bb.`,
       progress: t.mastery,
       label: 'of edge hands known',
       items: [
-        { route: 'open-learn', title: 'Study the ranges', text: 'Charts, cut-offs and what each seat adds' },
-        { route: 'open-drill', title: 'Raise or fold', text: 'One seat, one hand, one decision', stat: accuracy(OPEN, 'hands', 'Start here'), main: true },
+        { route: 'open-learn', title: 'Cheat sheet', text: 'Charts, cut-offs and what each seat adds' },
+        { route: 'open-drill', title: 'Raise or fold', text: 'Folded to you: open or let it go', stat: accuracy(OPEN, 'hands'), main: true },
         { route: 'open-edges', title: 'Find the cut-off', text: 'Name the weakest hand you open in a row', stat: `${edges.known}/${edges.total}` },
+        { route: 'open-progress', title: 'Progress', text: 'Misses by hand, and your weakest spots', stat: weak ? `${weak} weak` : '' },
         { route: 'open-paint', title: 'Paint the range', text: "Fill in a seat's chart from memory", stat: `${perfect(LADDER)}/${LADDER.length}` },
         { route: 'open-layers', title: "What's new?", text: 'Add the hands that open one seat later', stat: `${perfect(layerKeys)}/${layerKeys.length}` },
-        { route: 'open-progress', title: 'Progress', text: 'Misses by hand, and your weakest spots', stat: weak ? `${weak} weak` : '' },
       ],
     }),
 
@@ -96,7 +111,7 @@ export function home(root) {
       progress: tbKnown / TB_SPOTS.length,
       label: 'of spots known',
       items: [
-        { route: 'tb-learn', title: 'Study 3-betting', text: 'The ladder, the kinds of 3-bet, and 4-bets' },
+        { route: 'tb-learn', title: 'Cheat sheet', text: 'Sizes, value ranges by opener, bluffs and 4-bets' },
         { route: 'tb-charts', title: 'Which 3-bet?', text: 'Place a hand on the value, bluff and merged charts', stat: accuracy('threebet', 'hands') },
         { route: 'tb-spots', title: 'Play the spot', text: 'Choose the play against the player in front of you', stat: `${tbKnown}/${TB_SPOTS.length}`, main: true },
         { route: 'tb-progress', title: 'Progress', text: 'Misses by chart, and each spot' },
@@ -110,7 +125,7 @@ export function home(root) {
       progress: (callKnown + setKnown) / callTotal,
       label: 'of hands known',
       items: [
-        { route: 'call-learn', title: 'Study cold-calling', text: 'The gap concept, five things to weigh, the default ranges' },
+        { route: 'call-learn', title: 'Cheat sheet', text: 'What to call and 3-bet by raiser, and the set-mining rule' },
         { route: 'call-drill', title: 'Call, 3-bet or fold', text: 'A raise in front of you and the default charts', stat: accuracy('coldcall', 'hands'), main: true },
         { route: 'call-spots', title: 'Read the table', text: 'Hands where the other players change the answer', stat: `${callKnown}/${CALL_SPOTS.length}` },
         { route: 'call-tool', title: 'Set-mining sums', text: 'Slide the call and the stack, see what the rule says' },

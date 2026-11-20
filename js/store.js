@@ -9,9 +9,10 @@
 const KEY = 'learn-poker:v1';
 const MAX_BOX = 3;
 const TOPICS = {
-  open: ['hands', 'edges', 'paint', 'time'],
-  threebet: ['hands', 'spots', 'time'],
-  coldcall: ['hands', 'spots', 'sets', 'time'],
+  open: ['hands', 'edges', 'paint', 'facts', 'time'],
+  threebet: ['hands', 'spots', 'facts', 'time'],
+  coldcall: ['hands', 'spots', 'sets', 'facts', 'time'],
+  table: ['seats', 'sizes', 'time'],
 };
 
 function blank() {

@@ -19,6 +19,7 @@ export const CALL_CHARTS = [
     callPct: 7.69,
     gapPct: 4.52,
     gapEquity: 52.8,
+    callLine: 'QQ-44, AQs-AJs, KQs, JTs, T9s, 98s, AQo+',
     gap: ['QQ-99', 'AQs-AJs', 'KQs', 'AQo+'],
     weaker: ['88-44', 'JTs', 'T9s', '98s'],
     value3bet: ['KK+', 'AKs'],
@@ -31,6 +32,7 @@ export const CALL_CHARTS = [
     callPct: 9.65,
     gapPct: 5.13,
     gapEquity: 52.1,
+    callLine: 'JJ-22, AQs-ATs, KJs+, QJs, JTs-76s, AQo+',
     gap: ['JJ-88', 'AQs-AJs', 'KJs+', 'QJs', 'AQo+'],
     weaker: ['77-22', 'ATs', 'JTs-76s'],
     value3bet: ['QQ+', 'AKs'],
@@ -43,6 +45,7 @@ export const CALL_CHARTS = [
     callPct: 11.01,
     gapPct: 6.18,
     gapEquity: 51.37,
+    callLine: 'TT-22, ATs, KTs+, QTs+, J9s+, T9s-54s, AJo, KJo+',
     gap: ['TT-66', 'ATs', 'KJs+', 'QJs', 'AJo', 'KJo+'],
     weaker: ['55-22', 'KTs', 'QTs', 'JTs-54s', 'J9s'],
     value3bet: ['JJ+', 'AQs+', 'AQo+', 'AJs'],
@@ -274,4 +277,52 @@ export const SET_SPOTS = [
     factors: [['stacks', 'against', 'Need 45bb, can win 22bb']],
     math: { call: 3, effective: 22 },
   },
+];
+
+// ---- The short version: what to know, and how to remember it
+
+export const CHEAT = [
+  {
+    title: 'Before you call, check',
+    rows: [
+      ['Equity edge', 'Ahead of their range'],
+      ['Implied odds', 'Can win a big pot when it hits'],
+      ['Playability', 'Position on a wide opener'],
+      ['Raise size', 'Big raise from a passive player: strong'],
+      ['Players behind', '3-bettor: tighter · weak callers: wider'],
+    ],
+  },
+  {
+    title: 'Set mining',
+    rows: [
+      ['Flop a set', '1 time in 8.5'],
+      ['Break even', 'Win 9 × the call'],
+      ['The rule', 'Call only if you can win 15 × the call'],
+      ['A 3bb call needs', '45bb'],
+      ['Then check', 'Opponent is strong · opponent pays off'],
+    ],
+  },
+];
+
+export const TRICKS = [
+  'Three zones against a raise: 3-bet the top, call the middle, fold the rest.',
+  'Call one pair below your 3-bets: 3-bet KK+ so call QQ down, 3-bet QQ+ so call JJ down, 3-bet JJ+ so call TT down.',
+  'Later raiser, wider call: 7.7% against UTG, 9.7% against MP, 11% against the cutoff.',
+  'Dominated hands fold. KTs against a UTG raise loses to KJ, KQ and AK.',
+  '15 to 1: multiply the call by 15. If the smaller stack is not that big, fold the small pair.',
+];
+
+export const FACTS = [
+  { id: 'gap', q: 'The gap concept in one line?', a: 'Calling a raise needs a stronger hand than making one', wrong: ['Call with any hand you would open', 'Never call a raise', 'Only call with pairs'], why: 'You need a stronger hand to call a raise than to raise yourself.' },
+  { id: 'zones', q: 'Against a raise, what do you do with your middle-strength hands?', a: 'Call', wrong: ['3-bet', 'Fold', 'Go all-in'], why: '3-bet the strongest, call the good ones not quite strong enough to 3-bet, fold the rest.' },
+  { id: 'kts', q: 'KTs facing a UTG raise?', a: 'Fold', wrong: ['Call', '3-bet', 'All-in'], why: 'An underdog, and dominated by KJ, KQ and AK when it pairs the king.' },
+  { id: 'behind-3b', q: 'An aggressive 3-bettor is still to act behind you. Your calling range gets...', a: 'Tighter', wrong: ['Wider', 'No different', 'Replaced by all-ins'], why: 'Drop the weaker calls and keep hands that can stand a 3-bet, like AQs and JJ.' },
+  { id: 'behind-rec', q: 'Weak players behind you are likely to call too. You can add hands that...', a: 'Play well in a crowd', wrong: ['Are offsuit and unconnected', 'Need to win unimproved', 'Dominate nothing'], why: 'Suited connectors and small pairs gain implied odds in multi-way pots.' },
+  { id: 'pairs-utg', q: 'Which pairs call a UTG open?', a: 'QQ down to 44', wrong: ['Every pair', 'TT down to 22', 'KK down to 99'], why: 'KK+ 3-bets; QQ to 44 call; 33 and 22 fold by default.' },
+  { id: 'pairs-co', q: 'Which pairs call a cutoff open?', a: 'TT down to 22', wrong: ['QQ down to 44', 'JJ down to 22', 'Only 99 and 88'], why: 'JJ+ 3-bets against the cutoff, and every smaller pair calls.' },
+  { id: 'set-odds', q: 'How often does a pocket pair flop a set or better?', a: '1 time in 8.5', wrong: ['1 time in 3', '1 time in 5', '1 time in 20'], why: '11.76% of flops.' },
+  { id: 'set-even', q: 'To break even set mining, you must win how many times the call?', a: '9 times', wrong: ['3 times', '5 times', '15 times'], why: 'You hit about 1 time in 9 after rounding up, so the win must cover 9 calls.' },
+  { id: 'set-rule', q: 'The rule for a profitable set-mine?', a: '15 to 1', wrong: ['5 to 1', '9 to 1', '50 to 1'], why: 'Only call if you can win 15 times the call when you hit.' },
+  { id: 'set-45', q: 'By the 15-to-1 rule, a 3bb call needs...', a: '45bb', wrong: ['15bb', '27bb', '100bb'], why: '15 × 3bb.' },
+  { id: 'set-eff', q: 'The effective stack is...', a: 'The smaller of your stack and theirs', wrong: ['Your stack', 'Their stack', 'Both stacks added'], why: 'It is the most you can win from that opponent.' },
 ];

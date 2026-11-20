@@ -1,7 +1,7 @@
 // Raise or fold: one seat, one hand, one decision.
 import { h, fill } from '../dom.js';
 import { shell, segmented, dealSuits, miniMap, handTag } from '../components.js';
-import { readSpot, tableView, spotFacts } from '../table.js';
+import { readSpot, tableView, spotFacts, tablesWith } from '../table.js';
 import { POS, OPEN_SIZE_BB, explain, describeHand } from '../ranges.js';
 import { record, recordTime } from '../store.js';
 import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, onKeys } from '../drill.js';
@@ -30,7 +30,8 @@ export function openDrill(root, params = {}) {
     q = dueRetry(round) || (weak ? pickFrom(weak, round.recent) : pickHand(seatsFor(seatFilter), round.recent));
     q = { seat: q.seat, hand: q.hand, t0: performance.now() };
     // The same table every tutorial uses: everyone before you has folded.
-    q.spot = { hero: { seat: q.seat, hand: q.hand } };
+    const sizes = tablesWith(q.seat);
+    q.spot = { players: sizes[Math.floor(Math.random() * sizes.length)], hero: { seat: q.seat, hand: q.hand } };
     q.info = readSpot(q.spot);
     q.view = tableView(q.spot, q.info, { suits: dealSuits(q.hand) });
     result = null;

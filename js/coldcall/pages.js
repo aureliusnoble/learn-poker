@@ -1,13 +1,12 @@
 // Cold-calling and set mining: the lessons, the calculator and the drills.
 import { h, fill } from '../dom.js';
 import { shell, handTag } from '../components.js';
-import { LESSONS, CRITERIA, SET_CRITERIA, EQUITY_EXAMPLE, SET_MINING, CALL_SPOTS, SET_SPOTS } from '../data/coldcall.js';
-import { lessonCards, chartStudy, setMath } from '../feedback.js';
+import { LESSONS, CRITERIA, SET_CRITERIA, EQUITY_EXAMPLE, SET_MINING, CALL_SPOTS, SET_SPOTS, CALL_CHARTS, CHEAT, TRICKS } from '../data/coldcall.js';
+import { cheatSheet, lessonCards, chartStudy, setMath } from '../feedback.js';
 import { spotDrill, deckOf } from '../spotdrill.js';
 import { topicProgress } from '../topicprogress.js';
 import { TOPIC, CHARTS, nextCallSpot, nextSetSum } from './model.js';
 
-const lesson = (id) => LESSONS.filter((l) => l.id === id);
 const study = { id: 'UTG' };
 let filter = 'ALL';
 
@@ -27,21 +26,26 @@ function equityExample() {
       h('td', null, `${x.verdict === 'call' ? 'Call' : 'Fold'}. ${x.why}`))))));
 }
 
+const BY_OPENER = {
+  title: 'Against a raise, by who raised',
+  rows: CALL_CHARTS.flatMap((c) => [
+    [`${c.id} raises: 3-bet`, c.value3bet.join(', ')],
+    [`${c.id} raises: call`, c.callLine],
+  ]),
+};
+
 export function learnCall(root) {
   const main = shell(root, { title: 'Cold-calling and set mining', back: 'home' });
   const draw = () => fill(main,
-    lessonCards(lesson('terms')),
-    lessonCards(lesson('gap')),
     gapBar(),
-    equityExample(),
-    lessonCards(lesson('criteria')),
-    lessonCards(lesson('ranges')),
+    cheatSheet([BY_OPENER, ...CHEAT], TRICKS),
+    h('h2', { class: 'h2' }, 'The charts'),
     chartStudy(CHARTS, study, draw, {
       extra: (chart) => h('p', { class: 'hint' },
         `The gap concept hands are ${chart.source.gapPct}% of hands and have ${chart.source.gapEquity}% equity against the range a conservative ${chart.id} player opens.`),
     }),
-    lessonCards(lesson('setmine')),
-    h('a', { class: 'btn btn--quiet', href: '#call-tool' }, 'Open the set-mining sums'));
+    h('a', { class: 'btn btn--quiet', href: '#call-tool' }, 'Open the set-mining sums'),
+    h('details', { class: 'more' }, h('summary', null, 'The reasoning in full'), lessonCards(LESSONS), equityExample()));
   draw();
 }
 

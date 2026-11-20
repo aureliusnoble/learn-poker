@@ -5,7 +5,8 @@ import { makeChart, handsIn } from '../charts.js';
 import { stat } from '../store.js';
 import { weightedPick } from '../dom.js';
 import { boxWeight, edgeWeight } from '../drill.js';
-import { bb } from '../table.js';
+import { bb, tablesWith, SEATS_BY_COUNT } from '../table.js';
+import { threeBetSize } from '../sizing.js';
 
 export const TOPIC = 'coldcall';
 
@@ -38,29 +39,50 @@ function reason(chart, hand) {
   return `${hand} is not in the default range against a ${chart.id} open.`;
 }
 
-/** A hand against an unknown opener: call, 3-bet or fold by the default chart. */
-export function nextCallSpot(getFilter) {
+// What each wrong answer says about how you are playing.
+function leaksFor(correct) {
+  if (correct.includes('call') && correct.includes('3bet')) return { fold: 'tight' };
+  if (correct[0] === 'fold') return { call: 'loose', '3bet': 'loose' };
+  if (correct[0] === 'call') return { fold: 'tight', '3bet': 'wild' };
+  return { fold: 'tight', call: 'passive' };
+}
+
+/**
+ * A raise in front of you and a hand: call, 3-bet or fold by the default chart,
+ * then size the 3-bet. `getFilter` names the opener (or 'ALL'), `getPlayers`
+ * the table size (or 0 for any).
+ */
+export function nextCallSpot(getFilter, getPlayers = () => 0) {
   return (round) => {
     const filter = getFilter();
-    const chart = filter === 'ALL' ? pick(CHARTS) : CHARTS.find((c) => c.id === filter);
+    const size = getPlayers();
+    const open = CHARTS.filter((c) => !size || SEATS_BY_COUNT[size].includes(c.id));
+    const chart = open.find((c) => c.id === filter) || pick(open);
     const want = weightedPick(WANT, (w) => w[1])[0];
     const all = handsIn(chart, want);
     const fresh = all.filter((hand) => !round.recent.includes(`${chart.id}:${hand}`));
     const hand = weightedPick(fresh.length ? fresh : all,
       (x) => edgeWeight(chart.dist.get(x)) * boxWeight(stat(TOPIC, 'hands', `${chart.id}:${x}`)));
     const cat = chart.categoryOf(hand);
-    return {
+    const correct = chart.optional.has(hand) ? ['call', '3bet'] : PLAY[cat] || ['fold'];
+    const spot = {
+      topic: TOPIC,
+      bucket: 'hands',
       key: `${chart.id}:${hand}`,
-      title: `Against a ${chart.id} open`,
+      title: `Against a ${chart.id} raise`,
+      players: size || pick(tablesWith(chart.id)),
       hero: { seat: pick(CALLER_SEATS[chart.id]), hand },
       reads: { [chart.id]: 'unknown' },
       action: [[chart.id, 'raise', 3]],
       options: ['fold', 'call', '3bet'],
-      correct: chart.optional.has(hand) ? ['call', '3bet'] : PLAY[cat] || ['fold'],
+      correct,
+      leaks: leaksFor(correct),
       why: reason(chart, hand),
       lens: { chart, hand },
       quick: true,
     };
+    if (correct.includes('3bet')) spot.size = threeBetSize(spot);
+    return spot;
   };
 }
 

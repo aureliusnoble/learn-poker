@@ -1,13 +1,14 @@
 // 3-betting and 4-betting: the lessons, the charts and the drills.
 import { h, fill } from '../dom.js';
 import { shell } from '../components.js';
-import { LESSONS, SPOTS, FOUR_BET } from '../data/threebet.js';
-import { lessonCards, chartStudy } from '../feedback.js';
+import { LESSONS, SPOTS, CHEAT, TRICKS } from '../data/threebet.js';
+import { CALL_CHARTS } from '../data/coldcall.js';
+import { cheatSheet, moreDetail, chartStudy } from '../feedback.js';
 import { spotDrill, deckOf } from '../spotdrill.js';
 import { topicProgress } from '../topicprogress.js';
+import { threeBetSize, fourBetSize } from '../sizing.js';
 import { TOPIC, CHARTS, GROUPS, nextChartSpot } from './model.js';
 
-const lesson = (...ids) => LESSONS.filter((l) => ids.includes(l.id));
 const study = { id: 'depolarized' };
 let chartFilter = 'ALL';
 let group = 'ALL';
@@ -18,28 +19,23 @@ function ladder() {
     rungs.map(([n, name], i) => h('li', null, h('i', { style: `height:${14 + i * 12}px` }), h('b', null, n), name)));
 }
 
-function fourBetFacts() {
-  const range = ([a, b]) => `${a} to ${b}`;
-  const row = (k, v) => h('tr', null, h('th', { scope: 'row' }, k), h('td', null, v));
-  return h('table', { class: 'sum' }, h('tbody', null,
-    row('Value 4-bets', FOUR_BET.value.join(', ')),
-    row('Add against loose players', 'AK, QQ, JJ'),
-    row('Size in position', `${range(FOUR_BET.sizeInPosition)} times the 3-bet`),
-    row('Size out of position', `${range(FOUR_BET.sizeOutOfPosition)} times the 3-bet`),
-    row('Open size when 3-bet a lot', `${FOUR_BET.smallerOpen[0]}bb to ${FOUR_BET.smallerOpen[1]}bb from CO and BTN`)));
-}
+// The value range depends on who raised: it comes from the calling charts.
+const VALUE_BY_OPENER = {
+  title: 'Value 3-bets, by who raised',
+  rows: CALL_CHARTS.map((c) => [
+    `${c.id} raises`,
+    `${c.value3bet.join(', ')}${c.optional3bet.length ? ` · maybe ${c.optional3bet.join(', ')}` : ''}`,
+  ]),
+};
 
 export function learnThreeBet(root) {
   const main = shell(root, { title: '3-betting', back: 'home' });
   const draw = () => fill(main,
-    lessonCards(lesson('ladder')),
     ladder(),
-    lessonCards(lesson('value', 'merged', 'bluff')),
+    cheatSheet([CHEAT[0], VALUE_BY_OPENER, ...CHEAT.slice(1)], TRICKS),
     h('h2', { class: 'h2' }, 'The charts'),
     chartStudy(CHARTS, study, draw),
-    lessonCards(lesson('face3', 'adjust', '4bet')),
-    fourBetFacts(),
-    lessonCards(lesson('face4')));
+    moreDetail(LESSONS));
   draw();
 }
 
@@ -71,7 +67,14 @@ export function spotsDrill(root) {
     topic: TOPIC,
     bucket: 'spots',
     total: 12,
-    next: (round) => deckOf(pool(), TOPIC, 'spots')(round),
+    // A spot whose answer is a raise also asks for its size.
+    next: (round) => {
+      const spot = deckOf(pool(), TOPIC, 'spots')(round);
+      if (spot.size || !spot.hero) return spot;
+      if (spot.options.includes('3bet') && spot.correct.includes('3bet')) return { ...spot, size: threeBetSize(spot) };
+      if (spot.options.includes('4bet') && spot.correct.includes('4bet')) return { ...spot, size: fourBetSize(spot) };
+      return spot;
+    },
     filter: {
       label: 'Lessons',
       options: GROUPS.map(({ value, label }) => ({ value, label })),

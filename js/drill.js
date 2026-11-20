@@ -17,6 +17,16 @@ export const edgeWeight = (dist) => EDGE_W[dist] ?? 0.05;
 /** 0..1: how settled an item is. */
 export const settled = (item) => (item ? Math.min(item.b, SOLID) / SOLID : 0);
 
+/** The kinds of mistake a table decision can be, with what to do about each. */
+export const LEAKS = {
+  loose: { name: 'Too loose', tip: 'You put chips in with hands that fold. The ranges are tighter than they feel: when it is not on the chart, let it go.' },
+  tight: { name: 'Too tight', tip: 'You folded hands that play. Look again at the bottom of each range, especially from the later seats.' },
+  passive: { name: 'Too passive', tip: 'You called with a hand strong enough to 3-bet for value. Premium hands want a bigger pot.' },
+  wild: { name: 'Overplayed', tip: 'You 3-bet a hand that is only strong enough to call. Ask whether worse hands would call the 3-bet.' },
+  size: { name: 'Wrong size', tip: 'Size a raise from their bet, not from the blinds, and check whether you are in or out of position first. The multiples are on the 3-betting cheat sheet.' },
+  seat: { name: 'Wrong seat', tip: 'Find the dealer button and count: button, then small blind, big blind. Going the other way from the button: cutoff, middle position, under the gun.' },
+};
+
 export function newRound(total) {
   return { i: 0, total, right: 0, streak: 0, best: 0, ms: 0, timed: 0, misses: [], recent: [], retry: [] };
 }
@@ -70,13 +80,14 @@ export function verdict(ok, text) {
 }
 
 /** The end-of-round screen. `missRow(item)` returns [heading nodes, explanation]. */
-export function roundSummary(main, round, { missRow, again, back }) {
+export function roundSummary(main, round, { missRow, again, back, extra = null }) {
   const pace = round.timed ? `${(round.ms / round.timed / 1000).toFixed(1)}s per decision · ` : '';
   fill(main,
     h('section', { class: 'result' },
       h('p', { class: 'eyebrow' }, 'Round complete'),
       h('p', { class: 'result__score' }, String(round.right), h('span', null, ` / ${round.total}`)),
       h('p', { class: 'result__line' }, `${pace}best run ${round.best}`)),
+    extra,
     round.misses.length
       ? h('section', { class: 'block' },
         h('h2', { class: 'h2' }, 'Worth another look'),

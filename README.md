@@ -5,22 +5,31 @@ book, each turned into charts, a table simulator and practice spots.
 
 ## What is in it
 
-Three pre-flop tutorials, each with a study page, drills and a progress page:
+**Play** (at a table of four to six):
+
+- **Play hands**: open, call, 3-bet or fold, hand after hand, with the 3-bet
+  sized as a second step and each mistake named (too loose, too passive ...).
+- **Find your seat**: read your position from the dealer button.
+- **Size the raise**: 3-bets and 4-bets, in and out of position.
+- **Quick facts**: the numbers and rules to know by heart.
+
+**Three pre-flop tutorials**, each with a cheat sheet, drills and progress:
 
 1. **Opening ranges**: which hands to open from each seat, raising to 3bb.
-2. **3-betting**: value, merged and bluff 3-bets, facing a 3-bet, and 4-bets.
+2. **3-betting**: sizes, value ranges by who raised, merged and bluff 3-bets,
+   facing a 3-bet, and 4-bets.
 3. **Cold-calling and set mining**: the gap concept, the default calling
    ranges, and the 15-to-1 rule.
 
 They share the same tools:
 
-- **The table simulator** (`js/table.js`): a spot is a few lines of data (who
-  raised, who is left to act, what is known about them) and the table plays it
-  out seat by seat and works out the pot and the price.
+- **The table simulator** (`js/table.js`): a spot is a few lines of data (how
+  many players, who raised, what is known about them) and the table plays it
+  out seat by seat and works out the pot, the price and who has position.
 - **The spot drill** (`js/spotdrill.js`): one runner for every "what do you do
   here?" exercise, whether the spot is written by hand or generated from a chart.
 - **Feedback** (`js/feedback.js`): the rule in a sentence, the factors for and
-  against, the set-mining sum, and the chart with the hand marked.
+  against, the set-mining sum, the chart with the hand marked, and cheat sheets.
 - **Categorised charts** (`js/charts.js`): value and bluff, call and 3-bet, in
   one colour language. Blue raises for value, orange bluffs, green calls.
 
@@ -43,7 +52,8 @@ Everything taught lives in `js/data/`, written the way the notes read (`66+`,
 `ATs+`, `JTs-76s`):
 
 - `preflop-ranges.js`: the opening ranges and the open size.
-- `threebet.js`: the 3-bet charts, the lessons and the practice spots.
+- `threebet.js`: the 3-bet charts and sizes, the cheat sheet, the facts and the
+  practice spots.
 - `coldcall.js`: the calling charts, the lessons, the practice hands and the
   set-mining numbers.
 

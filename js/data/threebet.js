@@ -6,8 +6,8 @@ export const CHARTS = [
   {
     id: 'depolarized',
     name: 'Value',
-    title: 'Value 3-bets (depolarized)',
-    blurb: 'Strong hands only. The default: 3-bet to build a pot while you are ahead.',
+    title: 'Value 3-bets (general example)',
+    blurb: 'Strong hands only. Narrow it against an early-seat raise and widen it against a late one.',
     categories: [{ id: 'value', label: 'Value 3-bet', tokens: ['JJ+', 'AQs+', 'AKo'] }],
   },
   {
@@ -41,6 +41,9 @@ export const CHARTS = [
   },
 ];
 
+/** How big to make a 3-bet, as a multiple of the open-raise it answers. */
+export const THREE_BET_SIZE = { inPosition: 3.5, outOfPosition: 3 };
+
 export const FOUR_BET = {
   value: ['KK+'], // the core at micro stakes
   versusLoose: ['AKs', 'AKo', 'QQ', 'JJ'], // added against weaker, looser opponents
@@ -64,6 +67,21 @@ export const LESSONS = [
     points: [
       '3-bet your strongest hands to get money in while ahead: JJ+, AQs+ and AKo.',
       'A range of strong hands only is called depolarized.',
+    ],
+  },
+  {
+    id: 'narrow',
+    title: 'Fit the range to the opener',
+    points: [
+      'A 3-bet is for value only when the hands that call it are worse than yours.',
+      'So the tighter their opening range, the narrower your value range: KK+ and AKs against UTG, QQ+ against MP, JJ+ and AQ+ against the cutoff.',
+    ],
+  },
+  {
+    id: 'size',
+    title: 'How big',
+    points: [
+      '3-bet to 3.5 times their raise in position and 3 times out of position.',
     ],
   },
   {
@@ -219,6 +237,66 @@ export const SPOTS = [
     options: ['pass', '3bet'],
     correct: ['pass'],
     why: 'The opponent is right for a bluff but the hand is not. Bluffs come from small suited aces, suited connectors and small pairs, which can still make something when called.',
+  },
+
+  // ---- Value means worse hands call
+  {
+    id: 'tb-worse-kk',
+    lesson: 'narrow',
+    title: 'Who calls your 3-bet?',
+    hero: { seat: 'BTN', hand: 'KK' },
+    reads: { CO: 'unknown' },
+    notes: { CO: 'Calls 3-bets with TT+ and AQ+' },
+    action: [['CO', 'raise', 3]],
+    options: ['pass', '3bet'],
+    correct: ['3bet'],
+    why: 'Almost everything that calls is worse than kings. When worse hands call, the 3-bet is for value.',
+  },
+  {
+    id: 'tb-worse-jj',
+    lesson: 'narrow',
+    title: 'Only better hands continue',
+    hero: { seat: 'BTN', hand: 'JJ' },
+    reads: { MP: 'nit' },
+    notes: { MP: 'Continues against a 3-bet only with QQ+ and AK' },
+    action: [['MP', 'raise', 3]],
+    options: ['pass', '3bet'],
+    correct: ['pass'],
+    why: 'Everything that continues beats jacks or flips with them, and everything worse folds. Their calling range has to be weaker than your hand for a 3-bet to be for value.',
+  },
+  {
+    id: 'tb-worse-aqs',
+    lesson: 'narrow',
+    title: 'A caller with a weak range',
+    hero: { seat: 'BTN', hand: 'AQs' },
+    reads: { CO: 'rec' },
+    notes: { CO: 'Calls 3-bets with any ace and any pair' },
+    action: [['CO', 'raise', 3]],
+    options: ['pass', '3bet'],
+    correct: ['3bet'],
+    why: 'This player calls with plenty of worse aces and small pairs, so AQs is well ahead of the calling range. That makes it a value 3-bet.',
+  },
+  {
+    id: 'tb-narrow-utg',
+    lesson: 'narrow',
+    title: 'The same hand, an early raiser',
+    hero: { seat: 'BTN', hand: 'AQo' },
+    reads: { UTG: 'unknown' },
+    action: [['UTG', 'raise', 3]],
+    options: ['pass', '3bet'],
+    correct: ['pass'],
+    why: 'Against a UTG open the value range narrows to KK+ and AKs. A tight range continues with hands that beat AQo.',
+  },
+  {
+    id: 'tb-narrow-co',
+    lesson: 'narrow',
+    title: 'The same hand, a late raiser',
+    hero: { seat: 'BTN', hand: 'AQo' },
+    reads: { CO: 'unknown' },
+    action: [['CO', 'raise', 3]],
+    options: ['pass', '3bet'],
+    correct: ['3bet'],
+    why: 'The cutoff opens far more hands, so the value range widens to JJ+, AQ+ and AJs. AQo is ahead of what calls.',
   },
 
   // ---- Facing a 3-bet
@@ -467,4 +545,78 @@ export const SPOTS = [
     correct: ['call', 'jam'],
     why: 'Against a polarized 4-betting range with bluffs in it, JJ continues: call or go all-in.',
   },
+];
+
+// ---- The short version: what to know, and how to remember it
+
+export const CHEAT = [
+  {
+    title: 'How big',
+    rows: [
+      ['3-bet in position', '3.5 × their raise'],
+      ['3-bet out of position', '3 × their raise'],
+      ['They open 3bb', '10.5bb in position · 9bb out'],
+      ['4-bet in position', '2 to 2.2 × their 3-bet'],
+      ['4-bet out of position', '2.2 to 2.5 × their 3-bet'],
+    ],
+  },
+  {
+    title: 'Is it for value?',
+    rows: [
+      ['The test', 'Worse hands call it'],
+      ['Tighter opener', 'Narrower value range'],
+    ],
+  },
+  {
+    title: 'Bluffs and merged',
+    rows: [
+      ['Bluff with', 'A5s-A2s · T9s-65s · 55-22'],
+      ['Bluff against', 'Players who fold. Rarely.'],
+      ['Against wide openers add', 'ATs-A9s · KTs+ · QTs+ · AJo · KQo'],
+    ],
+  },
+  {
+    title: 'When they 3-bet you',
+    rows: [
+      ['Strong hands only', 'Ahead: 4-bet. Behind: fold.'],
+      ['Aggressive 3-bettor', 'KQ and AJ call · JJ 4-bets'],
+      ['3-bet a lot', 'Open tighter · open 2-2.5bb late'],
+    ],
+  },
+  {
+    title: '4-bets at micro stakes',
+    rows: [
+      ['For value', 'KK+ (add AK, JJ-QQ against loose players)'],
+      ['As a bluff', 'Never'],
+      ['They only 4-bet KK+', 'Fold JJ and QQ'],
+      ['They 4-bet light', 'Call or jam JJ and QQ'],
+    ],
+  },
+];
+
+export const TRICKS = [
+  'One more pair per seat: 3-bet KK+ against UTG, QQ+ against MP, JJ+ against the cutoff.',
+  '3-bet sizes: three and a half in position, three out of position.',
+  'Value means worse hands call. If only better hands continue, it is not a value bet.',
+  'Bluff with hands that can still hit: small suited aces, suited connectors, small pairs.',
+  '4-bets are a little over double: 2 to 2.2 in position, 2.2 to 2.5 out.',
+];
+
+// Quick-fire facts. `a` is the answer, `wrong` the other choices.
+export const FACTS = [
+  { id: 'size-ip', q: 'How big is a 3-bet in position?', a: '3.5 × their raise', wrong: ['2.5 × their raise', '3 × their raise', '4.5 × their raise'], why: 'In position, 3.5 times the open.' },
+  { id: 'size-oop', q: 'How big is a 3-bet out of position?', a: '3 × their raise', wrong: ['2 × their raise', '3.5 × their raise', '5 × their raise'], why: 'Out of position, 3 times the open.' },
+  { id: 'size-4ip', q: 'How big is a 4-bet in position?', a: '2 to 2.2 × their 3-bet', wrong: ['1.5 × their 3-bet', '2.2 to 2.5 × their 3-bet', '3.5 × their 3-bet'], why: 'In position, 2 to 2.2 times the 3-bet.' },
+  { id: 'size-4oop', q: 'How big is a 4-bet out of position?', a: '2.2 to 2.5 × their 3-bet', wrong: ['2 to 2.2 × their 3-bet', '3 × their 3-bet', '1.5 × their 3-bet'], why: 'Out of position, 2.2 to 2.5 times the 3-bet.' },
+  { id: 'val-utg', q: 'Value 3-bets against a UTG open?', a: 'KK+, AKs', wrong: ['JJ+, AQ+', 'QQ+, AKs', 'TT+, AJs+'], why: 'The tightest opener gets the narrowest value range.' },
+  { id: 'val-mp', q: 'Value 3-bets against an MP open?', a: 'QQ+, AKs', wrong: ['KK+, AKs', 'JJ+, AQ+, AJs', '99+, AJs+'], why: 'One more pair than against UTG.' },
+  { id: 'val-co', q: 'Value 3-bets against a cutoff open?', a: 'JJ+, AQ+, AJs', wrong: ['KK+, AKs', 'QQ+, AKs', 'AA only'], why: 'The cutoff opens wide, so more hands are ahead of what calls.' },
+  { id: 'val-test', q: 'What makes a 3-bet a value bet?', a: 'Worse hands call it', wrong: ['Better hands fold', 'You hold a pair', 'You have position'], why: 'Their calling range has to be weaker than your hand.' },
+  { id: 'bluff-from', q: 'Where do 3-bet bluffs come from?', a: 'Small suited aces, suited connectors, small pairs', wrong: ['Any two cards', 'Offsuit kings and queens', 'Your best hands'], why: 'A5s-A2s, T9s-65s and 55-22: hands that can still make something when called.' },
+  { id: 'bluff-who', q: 'A bluff 3-bet needs an opponent who...', a: 'Folds to 3-bets', wrong: ['Calls everything', 'Opens tight', 'Has a short stack'], why: 'At micro stakes many players do not fold, so pick the target.' },
+  { id: 'merged-who', q: 'Merged 3-bets are for opponents who...', a: 'Open a wide range', wrong: ['Open a tight range', 'Never call', 'Only raise aces'], why: 'Against a wide range, hands like KQs and AJo are ahead and can 3-bet for value.' },
+  { id: '4b-core', q: 'The core value 4-bets at micro stakes?', a: 'KK+', wrong: ['TT+', 'Any ace', 'JJ+, AQ+'], why: 'Mainly KK+, adding AK and JJ-QQ against weaker, looser players.' },
+  { id: '4b-bluff', q: 'How often do you 4-bet bluff at micro stakes?', a: 'Never', wrong: ['Half the time', 'With any suited ace', 'Whenever in position'], why: 'Players who 3-bet at these stakes hold strong hands.' },
+  { id: 'f4-tight', q: 'They only 4-bet KK+. You hold QQ.', a: 'Fold', wrong: ['Call', 'All-in', 'Min-raise'], why: 'Queens are crushed by KK+. Fold unless stacks are deep.' },
+  { id: 'f3-ahead', q: 'They 3-bet strong hands only and your hand is behind their range.', a: 'Fold', wrong: ['Call', '4-bet', 'All-in'], why: 'Behind a strong range: fold. Ahead of it: 4-bet for value.' },
 ];

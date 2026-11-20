@@ -53,6 +53,28 @@ export function rangeLens(chart, hand) {
       legend(chart.categories.map((c) => ({ cls: c.cls, label: c.label })))));
 }
 
+/**
+ * The short version of a tutorial: what to know as label and answer pairs,
+ * then a few ways to remember it.
+ * blocks: [{ title, rows: [[label, answer]] }]
+ */
+export function cheatSheet(blocks, tricks = []) {
+  return h('div', { class: 'cheat' },
+    blocks.map((block) => h('section', { class: 'cheat__block' },
+      h('h2', { class: 'h2' }, block.title),
+      h('dl', { class: 'cheat__rows' }, block.rows.map(([k, v]) => h('div', null, h('dt', null, k), h('dd', null, v)))))),
+    tricks.length
+      ? h('section', { class: 'cheat__block' },
+        h('h2', { class: 'h2' }, 'Ways to remember it'),
+        h('ul', { class: 'hooks' }, tricks.map((t) => h('li', null, t))))
+      : null);
+}
+
+/** The longer explanation, folded away for when it is wanted. */
+export function moreDetail(lessons) {
+  return h('details', { class: 'more' }, h('summary', null, 'The reasoning in full'), lessonCards(lessons));
+}
+
 /** The core lessons of a tutorial as short cards. */
 export function lessonCards(lessons) {
   return h('div', { class: 'lessons' }, lessons.map((lesson) =>

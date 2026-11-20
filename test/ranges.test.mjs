@@ -159,3 +159,29 @@ test('every practice spot is answerable and points at a real lesson', () => {
   check([...coldcall.CALL_SPOTS, ...coldcall.SET_SPOTS], coldcall.LESSONS);
   for (const chart of threebet.CHARTS) assert.ok(makeChart(chart).hands.size > 0);
 });
+
+// ---- Table sizes and bet sizes
+
+import { threeBetSize, fourBetSize } from '../js/sizing.js';
+
+test('short-handed tables drop the earliest seats', () => {
+  const five = readSpot({ players: 5, hero: { seat: 'BTN', hand: 'AA' }, action: [['MP', 'raise', 3]] });
+  assert.deepEqual(five.order, ['MP', 'CO', 'BTN', 'SB', 'BB']);
+  assert.equal(five.inPosition, true);
+  assert.throws(() => readSpot({ players: 4, hero: { seat: 'UTG', hand: 'AA' } }));
+
+  // A freshly dealt hand: nobody has folded yet, wherever the hero sits.
+  const dealt = readSpot({ players: 6, hero: { seat: 'BTN' }, dealt: true });
+  assert.equal(Object.values(dealt.frames.at(-1).seats).filter((s) => s.status === 'folded').length, 0);
+
+  assert.equal(readSpot({ players: 4, hero: { seat: 'SB', hand: 'KK' }, action: [['BTN', 'raise', 2.5]] }).inPosition, false);
+});
+
+test('raise sizes follow position', () => {
+  const label = (size) => size.options.find((o) => o.id === size.correct).label;
+  assert.equal(label(threeBetSize({ hero: { seat: 'BTN', hand: 'AA' }, action: [['CO', 'raise', 3]] })), '10.5bb');
+  assert.equal(label(threeBetSize({ hero: { seat: 'BB', hand: 'AA' }, action: [['CO', 'raise', 3]] })), '9bb');
+  assert.equal(label(threeBetSize({ hero: { seat: 'SB', hand: 'AA' }, action: [['BTN', 'raise', 2.5]] })), '7.5bb');
+  assert.equal(label(fourBetSize({ hero: { seat: 'BTN', hand: 'AA' }, action: [['BTN', 'raise', 3], ['BB', 'raise', 10]] })), '20bb to 22bb');
+  assert.equal(label(fourBetSize({ hero: { seat: 'CO', hand: 'AA' }, action: [['CO', 'raise', 3], ['BTN', 'raise', 10]] })), '22bb to 25bb');
+});

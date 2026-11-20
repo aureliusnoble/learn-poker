@@ -63,7 +63,7 @@ export function nextChartSpot(getFilter) {
 // The practice spots, grouped the way the lessons run.
 export const GROUPS = [
   { value: 'ALL', label: 'All', lessons: null },
-  { value: 'bet', label: '3-betting', lessons: ['value', 'merged', 'bluff'] },
+  { value: 'bet', label: '3-betting', lessons: ['value', 'narrow', 'merged', 'bluff'] },
   { value: 'face', label: 'Facing one', lessons: ['face3', 'adjust'] },
   { value: 'four', label: '4-bets', lessons: ['4bet', 'face4'] },
 ];

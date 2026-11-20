@@ -9,9 +9,14 @@ import { paintDrill } from './preflop/paint.js';
 import { progressOpen } from './preflop/progress.js';
 import { learnThreeBet, chartDrill, spotsDrill, progressThreeBet } from './threebet/pages.js';
 import { learnCall, callDrill, callSpots, setTool, setDrill, progressCall } from './coldcall/pages.js';
+import { playHands, seatDrill, sizeDrill, factsDrill } from './play.js';
 
 const ROUTES = {
   home,
+  play: playHands,
+  seats: seatDrill,
+  sizes: sizeDrill,
+  facts: factsDrill,
   'open-learn': learnOpen,
   'open-drill': openDrill,
   'open-weak': openDrill,

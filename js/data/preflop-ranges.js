@@ -60,3 +60,16 @@ export const MEMORY_HOOKS = [
   'UTG oddity: JTs is in, but QJs and QTs are not.',
   'The small blind copies the cutoff.',
 ];
+
+// Quick-fire facts. `a` is the answer, `wrong` the other choices.
+export const FACTS = [
+  { id: 'size', q: 'How big is every open-raise?', a: '3bb', wrong: ['2bb', '4bb', '5bb'], why: 'Every open is a raise to 3 big blinds.' },
+  { id: 'sb', q: 'Which seat opens the same range as the cutoff?', a: 'Small blind', wrong: ['Button', 'Middle position', 'Big blind'], why: 'The small blind copies the cutoff.' },
+  { id: 'pair-utg', q: 'The lowest pair you open under the gun?', a: '66', wrong: ['22', '55', '88'], why: '66 and up from UTG.' },
+  { id: 'pair-mp', q: 'The lowest pair you open from middle position?', a: '55', wrong: ['22', '66', '77'], why: '55 and up from MP.' },
+  { id: 'pair-co', q: 'From which seat do you start opening every pair?', a: 'Cutoff', wrong: ['Under the gun', 'Middle position', 'Only the button'], why: '22+ from the cutoff on.' },
+  { id: 'ace-btn', q: 'Where do you open any ace, suited or not?', a: 'Button', wrong: ['Cutoff', 'Middle position', 'Everywhere'], why: 'A2o+ opens only on the button.' },
+  { id: 'five', q: 'At a five-handed table, which seat is missing?', a: 'Under the gun', wrong: ['Cutoff', 'Button', 'Middle position'], why: 'Seats are named from the button backwards, so the earliest one goes first.' },
+  { id: 'four', q: 'At a four-handed table, who acts first before the flop?', a: 'Cutoff', wrong: ['Button', 'Small blind', 'Big blind'], why: 'Four-handed leaves the cutoff, button and the two blinds.' },
+  { id: 'offsuit', q: 'UTG opens ATs. Does it open ATo?', a: 'No', wrong: ['Yes', 'Only when suited is folded', 'Half the time'], why: 'Offsuit has to be stronger than suited: UTG needs AJo.' },
+];

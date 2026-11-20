@@ -1,22 +1,27 @@
 // The spot drill: one runner for every "what do you do here?" exercise.
-// It seats the spot at the table, plays the action out, takes the answer, and
-// explains it with whatever feedback the spot carries.
+// It seats the spot at the table, plays the action out, takes the answer (and
+// the bet size, where a raise needs one), and explains the result.
 //
 // A spot is a table description (see table.js) plus:
 //   key        what to record progress under (defaults to id)
+//   topic, bucket   where to record it, when it differs from the drill's own
 //   options    answer ids ('fold', 'call', '3bet' ...) or { id, label } objects
 //   correct    the acceptable answer ids
-//   question   optional wording; with no `action` the spot is a plain question card
+//   question   optional wording; with no hero the spot is a plain question card
 //   why        the reason, in a sentence or two
+//   size       { when, key, question, options, correct, why }: asked after the
+//              right raise is chosen                                 (optional)
+//   leaks      { answerId: leakId } naming the kind of mistake       (optional)
 //   factors    [[criterionId, 'for' | 'against' | 'neutral', text]]  (optional)
-//   math       { call, effective } for the set-mining sum          (optional)
+//   math       { call, effective } for the set-mining sum            (optional)
 //   lens       { chart, hand } to show the chart with the hand marked (optional)
+//   hideSeats  true to leave seat names off the table until answered
 //   quick      true to move on by itself after a correct answer
 import { h, fill, weightedPick } from './dom.js';
 import { shell, segmented, dealSuits, handTag } from './components.js';
 import { describeHand } from './ranges.js';
 import { record, recordTime, stat } from './store.js';
-import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, boxWeight } from './drill.js';
+import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, boxWeight, LEAKS } from './drill.js';
 import { readSpot, tableView, spotFacts, readsList, optionLabel, optionPhrase, SEAT_NAMES } from './table.js';
 import { factorList, setMath, rangeLens } from './feedback.js';
 
@@ -34,12 +39,12 @@ const DEFAULT_QUESTION = {
 export function deckOf(spots, topic, bucket) {
   return (round) => {
     const fresh = spots.filter((s) => !round.recent.includes(s.key || s.id));
-    return weightedPick(fresh.length ? fresh : spots, (s) => boxWeight(stat(topic, bucket, s.key || s.id)));
+    return weightedPick(fresh.length ? fresh : spots, (s) => boxWeight(stat(s.topic || topic, s.bucket || bucket, s.key || s.id)));
   };
 }
 
 /**
- * cfg: { title, back, topic, bucket, total, next(round), criteria?, intro?,
+ * cfg: { title, back, topic, bucket, total, next(round), criteria?,
  *        filter?: { options, get(), set(v), label }, depth? }
  */
 export function spotDrill(root, cfg) {
@@ -50,6 +55,7 @@ export function spotDrill(root, cfg) {
   let spot;
   let info;
   let view;
+  let phase; // 'ask' | 'size' | 'done'
   let result;
   let suits;
   let t0;
@@ -65,6 +71,7 @@ export function spotDrill(root, cfg) {
 
   function start() {
     round = newRound(cfg.total);
+    round.leaks = {};
     ask();
   }
 
@@ -73,22 +80,58 @@ export function spotDrill(root, cfg) {
     info = spot.hero ? readSpot(spot) : null;
     suits = spot.hero && spot.hero.hand ? dealSuits(spot.hero.hand) : null;
     result = null;
-    view = null;
+    phase = 'ask';
+    view = spot.hero ? tableView(spot, info, { suits, hideSeats: !!spot.hideSeats }) : null;
     t0 = performance.now();
-    draw(true);
+    draw();
   }
 
   function answer(id) {
-    if (result) return;
-    const ms = performance.now() - t0;
+    if (phase !== 'ask') return;
     const ok = spot.correct.includes(id);
-    result = { ok, id };
-    if (view) view.finish();
-    record(cfg.topic, cfg.bucket, keyOf(spot), ok);
-    if (spot.quick) recordTime(cfg.topic, cfg.bucket, ms);
-    score(round, keyOf(spot), ok, spot.quick ? ms : null, spot);
-    draw(false);
-    if (ok && spot.quick) timer = setTimeout(advance, 950);
+    // The right raise still needs the right size.
+    if (ok && spot.size && spot.size.when === id) {
+      result = { id };
+      phase = 'size';
+      if (view) view.finish();
+      return draw();
+    }
+    finish({ id, ok, leak: ok ? null : (spot.leaks || {})[id] || null });
+  }
+
+  function answerSize(sizeId) {
+    if (phase !== 'size') return;
+    const sizeOk = sizeId === spot.size.correct;
+    record('table', 'sizes', spot.size.key, sizeOk, { countsToday: false });
+    finish({ id: result.id, ok: sizeOk, sizeId, sizeOk, leak: sizeOk ? null : 'size' });
+  }
+
+  function finish(res) {
+    const ms = performance.now() - t0;
+    result = res;
+    phase = 'done';
+    if (view) {
+      view.finish();
+      view.reveal();
+    }
+    const topic = spot.topic || cfg.topic;
+    const bucket = spot.bucket || cfg.bucket;
+    record(topic, bucket, keyOf(spot), res.ok);
+    if (spot.quick) recordTime(topic, bucket, ms);
+    if (res.leak) round.leaks[res.leak] = (round.leaks[res.leak] || 0) + 1;
+    score(round, keyOf(spot), res.ok, spot.quick ? ms : null, spot);
+    draw();
+    if (res.ok && spot.quick) timer = setTimeout(advance, 950);
+  }
+
+  function leakReport() {
+    const rows = Object.entries(round.leaks).sort((a, b) => b[1] - a[1]);
+    if (!rows.length) return null;
+    return h('section', { class: 'block' },
+      h('h2', { class: 'h2' }, 'What to work on'),
+      h('ul', { class: 'leaks' }, rows.map(([id, n]) => h('li', null,
+        h('span', { class: 'leaks__name' }, LEAKS[id].name, h('span', { class: 'pill pill--missed' }, `${n} ${n === 1 ? 'time' : 'times'}`)),
+        h('span', { class: 'leaks__tip' }, LEAKS[id].tip)))));
   }
 
   function advance() {
@@ -99,59 +142,75 @@ export function spotDrill(root, cfg) {
     roundSummary(main, round, {
       back: cfg.back,
       again: start,
-      missRow: (s) => [
-        [
-          s.hero && s.hero.hand ? handTag(s.hero.hand) : null,
-          h('span', { class: 'misses__title' }, s.title || (s.hero ? `${s.hero.seat}` : '')),
-        ],
-        `${s.correct.map((id) => {
+      extra: leakReport(),
+      missRow: (s) => {
+        const at = s.hero ? readSpot(s) : { toCall: 0, level: 2 };
+        const play = s.correct.map((id) => {
           const custom = s.options.find((o) => typeof o !== 'string' && o.id === id);
-          return custom ? custom.label : optionPhrase(id, readSpotSafe(s));
-        }).join(' or ')}. ${s.why}`.replace(/^./, (c) => c.toUpperCase()),
-      ],
+          return custom ? custom.label : optionPhrase(id, at);
+        }).join(' or ');
+        return [
+          [
+            s.hero && s.hero.hand ? handTag(s.hero.hand) : null,
+            s.hero && !s.hideSeats ? h('span', { class: 'tag' }, s.hero.seat) : null,
+            h('span', { class: 'misses__title' }, s.title || ''),
+          ],
+          `${play}. ${s.why}`.replace(/^./, (c) => c.toUpperCase()),
+        ];
+      },
     });
   }
 
   function feedback() {
     const others = spot.correct.filter((id) => id !== result.id);
+    const sized = spot.size && spot.correct.includes(spot.size.when);
     let head;
-    if (result.ok) head = others.length ? `Correct. You could also ${phrase(others[0])}.` : 'Correct.';
-    else if (isCustom(spot.correct[0])) head = `Wrong. The answer is ${spot.correct.map(phrase).join(' or ').toLowerCase()}.`;
+    if (result.sizeId && !result.sizeOk) head = 'Right play, wrong size.';
+    else if (result.ok) head = others.length && !result.sizeId ? `Correct. You could also ${phrase(others[0])}.` : 'Correct.';
+    else if (isCustom(spot.correct[0])) head = `Wrong. The answer: ${spot.correct.map(phrase).join(' or ')}.`;
     else head = `Wrong. The play is to ${spot.correct.map(phrase).join(' or ')}.`;
     return h('div', { class: 'feedback__body' },
-      verdict(result.ok, head),
+      h('div', { class: 'feedback__head' },
+        verdict(result.ok, head),
+        result.leak ? h('span', { class: 'pill pill--missed' }, LEAKS[result.leak].name) : null),
       h('p', { class: 'feedback__rule' }, spot.why),
+      sized && (result.sizeId || !result.ok) ? h('p', { class: 'feedback__rule' }, spot.size.why) : null,
       spot.factors && cfg.criteria ? factorList(spot.factors, cfg.criteria) : null,
       spot.math ? setMath(spot.math) : null,
       spot.lens ? rangeLens(spot.lens.chart, spot.lens.hand) : null);
   }
 
-  function draw(fresh) {
-    const opts = optionsOf(spot);
+  function draw() {
+    const sizing = phase === 'size';
+    const opts = sizing ? spot.size.options : optionsOf(spot);
+    const pick = sizing ? answerSize : answer;
     const wordy = opts.some((o) => o.label.length > 14);
     const filter = cfg.filter;
-
-    if (spot.hero && fresh) {
-      view = tableView(spot, info, { suits, showStacks: !!cfg.depth });
-    }
+    const done = phase === 'done';
 
     const choice = (o) => {
       let cls = 'btn choice';
-      if (result) {
-        if (spot.correct.includes(o.id)) cls += ' is-right';
-        else if (o.id === result.id) cls += ' is-wrong';
-      }
-      const primary = !result && !QUIET.has(o.id);
+      const right = result && (result.sizeId ? o.id === spot.size.correct : spot.correct.includes(o.id));
+      const chosen = result && (result.sizeId ? o.id === result.sizeId : o.id === result.id);
+      if (done && right) cls += ' is-right';
+      else if (done && chosen) cls += ' is-wrong';
+      const primary = !done && (sizing || !QUIET.has(o.id));
       return h('button', {
         type: 'button',
         class: `${cls} ${primary ? 'btn--primary' : 'btn--quiet'}`,
-        disabled: !!result,
-        onclick: () => answer(o.id),
+        disabled: done,
+        onclick: () => pick(o.id),
       }, o.label);
     };
 
+    const question = sizing ? spot.size.question
+      : spot.question || DEFAULT_QUESTION[info ? info.level : 2];
+    const showChoices = !done || (result.ok && spot.quick);
+    // After a size answer, show the sizes; otherwise the plays.
+    const shown = done && result.sizeId ? spot.size.options : opts;
+
     fill(main,
-      filter ? segmented(filter.options, filter.get(), (v) => { filter.set(v); if (result) draw(false); else ask(); }, filter.label) : null,
+      filter ? segmented(filter.options, filter.get(), (v) => { filter.set(v); if (done) draw(); else ask(); }, filter.label) : null,
       progressRow(round),
       spot.banner ? h('p', { class: 'banner' }, spot.banner) : null,
       spot.hero
@@ -160,27 +219,21 @@ export function spotDrill(root, cfg) {
           h('div', { class: 'spot__meta' },
             h('p', { class: 'spot__hand' },
               spot.hero.hand ? h('strong', null, describeHand(spot.hero.hand)) : null,
-              spot.hero.hand ? ' · ' : '', SEAT_NAMES[spot.hero.seat]),
-            spotFacts(info, { depth: !!(cfg.depth || spot.math) })),
+              spot.hideSeats && !done ? null : [spot.hero.hand ? ' · ' : '', SEAT_NAMES[spot.hero.seat]]),
+            spot.hideSeats ? null : spotFacts(info, { depth: !!(cfg.depth || spot.math) })),
           readsList(spot))
         : null,
-      h('p', { class: 'ask' }, spot.question || DEFAULT_QUESTION[info ? info.level : 2]),
-      result
-        ? h('div', { class: 'feedback feedback--open', 'aria-live': 'polite' }, feedback())
-        : null,
-      h('div', { class: `actions ${wordy ? 'actions--stack' : ''}` },
-        result && !(result.ok && spot.quick)
-          ? h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },
-            roundOver(round) ? 'See the round' : 'Next spot')
-          : opts.map(choice)),
+      h('p', { class: 'ask' }, question),
+      done ? h('div', { class: 'feedback feedback--open', 'aria-live': 'polite' }, feedback()) : null,
+      h('div', { class: `actions ${wordy ? 'actions--stack' : ''} ${shown.length > 4 ? 'actions--many' : ''}` },
+        showChoices
+          ? shown.map(choice)
+          : h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },
+            roundOver(round) ? 'See the round' : 'Next hand')),
     );
-    if (result) main.querySelector('.feedback').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (done) main.querySelector('.feedback').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   start();
   return () => clearTimeout(timer);
-}
-
-function readSpotSafe(s) {
-  return s.hero ? readSpot(s) : { toCall: 0, level: 2 };
 }
