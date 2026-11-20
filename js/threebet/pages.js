@@ -39,6 +39,7 @@ export function learnThreeBet(root) {
 export function chartDrill(root) {
   return spotDrill(root, {
     title: 'Which 3-bet?',
+    log: 'threebet/charts',
     back: 'home',
     topic: TOPIC,
     bucket: 'hands',
@@ -60,6 +61,7 @@ export function spotsDrill(root) {
   };
   return spotDrill(root, {
     title: 'Play the spot',
+    log: 'threebet/spots',
     back: 'home',
     topic: TOPIC,
     bucket: 'spots',

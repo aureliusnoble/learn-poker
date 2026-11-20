@@ -216,6 +216,7 @@ let simFilter = 'ALL';
 export function simulator(root) {
   return spotDrill(root, {
     title: 'Pre-flop simulator',
+    log: (spot) => ['sim/all', `sim/${spot.situation}`],
     back: 'home',
     topic: 'open',
     bucket: 'hands',
@@ -270,6 +271,7 @@ export function simReport(root) {
       h('section', { class: 'block' },
         h('h2', { class: 'h2' }, 'By situation'),
         h('ul', { class: 'seatrows seatrows--wide' }, SITUATIONS.map((s) => row(s.name, situations[s.value]))),
+        h('a', { class: 'linkbtn', href: '#trends' }, 'See how each situation is changing over time'),
         worst && situations[worst.value].c < situations[worst.value].n
           ? h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: () => { simFilter = worst.value; go('play'); } },
             `Practise: ${worst.name.toLowerCase()}`)
@@ -335,6 +337,7 @@ function seatSpot() {
 export function seatDrill(root) {
   return spotDrill(root, {
     title: 'Find your seat',
+    log: 'table/seats',
     back: 'home',
     topic: 'table',
     bucket: 'seats',
@@ -395,6 +398,7 @@ function sizeSpot() {
 export function sizeDrill(root) {
   return spotDrill(root, {
     title: 'Size the raise',
+    log: 'table/sizes',
     back: 'home',
     topic: 'table',
     bucket: 'sizes',
@@ -421,6 +425,7 @@ let factSet = 'ALL';
 export function factsDrill(root) {
   return spotDrill(root, {
     title: 'Quick facts',
+    log: 'table/facts',
     back: 'home',
     topic: 'open',
     bucket: 'facts',

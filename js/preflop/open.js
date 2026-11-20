@@ -3,11 +3,13 @@ import { h, fill } from '../dom.js';
 import { shell, segmented, dealSuits, miniMap, handTag } from '../components.js';
 import { readSpot, tableView, spotFacts, tablesWith } from '../table.js';
 import { POS, OPEN_SIZE_BB, explain, describeHand } from '../ranges.js';
-import { record, recordTime } from '../store.js';
+import { record, recordTime, batch, logAnswer, logOf } from '../store.js';
+import { roundNote } from '../trend.js';
 import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, onKeys } from '../drill.js';
 import { TOPIC, pickHand, pickFrom, play, verdictLine, SEAT_OPTIONS, seatsFor } from './model.js';
 
 const ROUND = 20;
+const LOG = 'open/drill';
 let seatFilter = 'ALL';
 
 export function openDrill(root, params = {}) {
@@ -43,8 +45,12 @@ export function openDrill(root, params = {}) {
     const info = explain(q.seat, q.hand);
     const ok = raise === info.inRange;
     result = { ok, raise, info };
-    record(TOPIC, 'hands', `${q.seat}:${q.hand}`, ok);
-    recordTime(TOPIC, q.seat, ms);
+    batch(() => {
+      record(TOPIC, 'hands', `${q.seat}:${q.hand}`, ok);
+      recordTime(TOPIC, q.seat, ms);
+      // The weak-spots round is only hands already missed, so it stays out of the history.
+      if (!weak) logAnswer(LOG, ok ? 1 : 0);
+    });
     score(round, `${q.seat}:${q.hand}`, ok, ms, { seat: q.seat, hand: q.hand });
     draw();
   }
@@ -55,6 +61,7 @@ export function openDrill(root, params = {}) {
       roundSummary(main, round, {
         back,
         again: start,
+        note: weak ? null : roundNote(logOf(LOG), round.i, round.right),
         missRow: (it) => [[handTag(it.hand), h('span', { class: 'tag' }, it.seat)], verdictLine(it.seat, it.hand)],
       });
     } else {

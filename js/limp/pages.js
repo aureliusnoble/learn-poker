@@ -23,6 +23,7 @@ export function learnLimp(root) {
 export function limpDrill(root) {
   return spotDrill(root, {
     title: 'Limpers in front',
+    log: 'limp/drill',
     back: 'home',
     topic: TOPIC,
     bucket: 'hands',
@@ -35,6 +36,7 @@ export function limpSpots(root) {
   const deck = deckOf(SPOTS, TOPIC, 'spots');
   return spotDrill(root, {
     title: 'Read the limper',
+    log: 'limp/spots',
     back: 'home',
     topic: TOPIC,
     bucket: 'spots',

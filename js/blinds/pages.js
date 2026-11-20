@@ -26,6 +26,7 @@ export function learnBlinds(root) {
 export function stealDrill(root) {
   return spotDrill(root, {
     title: 'Steal the blinds',
+    log: 'blinds/steal',
     back: 'home',
     topic: TOPIC,
     bucket: 'steal',
@@ -37,6 +38,7 @@ export function stealDrill(root) {
 export function defendDrill(root) {
   return spotDrill(root, {
     title: 'Defend your blind',
+    log: 'blinds/defend',
     back: 'home',
     topic: TOPIC,
     bucket: 'defend',
@@ -50,6 +52,7 @@ export function blindSums(root) {
   let turn = 0;
   return spotDrill(root, {
     title: 'Steal sums and spots',
+    log: 'blinds/sums',
     back: 'home',
     topic: TOPIC,
     bucket: 'spots',

@@ -23,6 +23,7 @@ export function learnSqueeze(root) {
 export function squeezeDrill(root) {
   return spotDrill(root, {
     title: 'A raise and a caller',
+    log: 'squeeze/drill',
     back: 'home',
     topic: TOPIC,
     bucket: 'hands',
@@ -35,6 +36,7 @@ export function squeezeSpots(root) {
   const deck = deckOf(SPOTS, TOPIC, 'spots');
   return spotDrill(root, {
     title: 'Squeeze or over-call?',
+    log: 'squeeze/spots',
     back: 'home',
     topic: TOPIC,
     bucket: 'spots',

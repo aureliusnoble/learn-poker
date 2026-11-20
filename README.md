@@ -13,6 +13,8 @@ book, each turned into charts, a table simulator and practice spots.
   book's own practice hands. A raise is sized as a second step and each mistake
   is named (too loose, too passive, wrong size ...).
 - **Simulator report**: where you leave the book, by situation, seat and leak.
+- **Progress over time**: your score on every exercise, day by day, and whether
+  the last 25 answers beat the 25 before.
 - **Find your seat**: read your position from the dealer button.
 - **Size the raise**: raises over limpers, 3-bets and 4-bets, in and out of position.
 - **Quick facts**: the numbers and rules to know by heart.
@@ -96,4 +98,6 @@ self-contained page fragment for hosts that serve a single file.
 
 Progress is one small JSON object in the browser's local storage. Where the host
 page offers a per-person document store (`window.claude`), it is synced there
-too.
+too. Besides the running totals for each hand and spot, it keeps a history for
+each exercise (answers and score per day, and the last 200 results), which is
+what the Progress over time page charts (`js/trend.js`).

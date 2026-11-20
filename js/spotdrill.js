@@ -20,7 +20,8 @@
 import { h, fill, weightedPick } from './dom.js';
 import { shell, segmented, dealSuits, handTag } from './components.js';
 import { describeHand } from './ranges.js';
-import { record, recordTime, stat } from './store.js';
+import { record, recordTime, stat, batch, logAnswer, logOf } from './store.js';
+import { roundNote } from './trend.js';
 import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, boxWeight, onKeys, LEAKS } from './drill.js';
 import { readSpot, tableView, spotFacts, readsList, optionLabel, optionPhrase, SEAT_NAMES } from './table.js';
 import { factorList, setMath, rangeLens } from './feedback.js';
@@ -58,6 +59,7 @@ export function deckOf(spots, topic, bucket) {
 
 /**
  * cfg: { title, back, topic, bucket, total, next(round), criteria?,
+ *        log?: the exercise id for the history, or (spot) => ids,
  *        filter?: { options, get(), set(v), label }, depth?, onAnswer?(spot, result) }
  */
 export function spotDrill(root, cfg) {
@@ -128,14 +130,19 @@ export function spotDrill(root, cfg) {
     }
     const topic = spot.topic || cfg.topic;
     const bucket = spot.bucket || cfg.bucket;
-    record(topic, bucket, keyOf(spot), res.ok);
-    if (spot.quick) recordTime(topic, bucket, ms);
+    batch(() => {
+      record(topic, bucket, keyOf(spot), res.ok);
+      if (spot.quick) recordTime(topic, bucket, ms);
+      if (cfg.log) logAnswer(logIds(), res.ok ? 1 : 0);
+    });
     if (res.leak) round.leaks[res.leak] = (round.leaks[res.leak] || 0) + 1;
     if (cfg.onAnswer) cfg.onAnswer(spot, res);
     score(round, keyOf(spot), res.ok, spot.quick ? ms : null, spot);
     // Nothing moves on by itself: the feedback stays until Next is tapped.
     draw();
   }
+
+  const logIds = () => (typeof cfg.log === 'function' ? cfg.log(spot) : [cfg.log]);
 
   function leakReport() {
     const rows = Object.entries(round.leaks).sort((a, b) => b[1] - a[1]);
@@ -154,6 +161,7 @@ export function spotDrill(root, cfg) {
     roundSummary(main, round, {
       back: cfg.back,
       again: start,
+      note: cfg.log ? roundNote(logOf(logIds()[0]), round.i, round.right) : null,
       extra: leakReport(),
       missRow: (s) => {
         const at = s.hero ? readSpot(s) : { toCall: 0, level: 2 };

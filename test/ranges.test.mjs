@@ -445,3 +445,59 @@ test('the squeeze and blind spots are well formed', () => {
   check(squeeze.SPOTS, squeeze.LESSONS);
   check(blinds.SPOTS, blinds.LESSONS);
 });
+
+// ---- Scores over time
+
+import { series, momentum, trendWord, roundNote, sparkSvg, chartSvg } from '../js/trend.js';
+
+test('a history becomes points on a calendar that ends today', () => {
+  const today = new Date(2026, 10, 20);
+  const entry = { d: { '2026-11-20': [20, 15], '2026-11-18': [10, 4], '2026-11-10': [4, 4], '2026-08-01': [9, 9] }, r: '' };
+  const s = series(entry, today);
+  assert.equal(s.span, 11);
+  assert.deepEqual(s.points.map((p) => [p.key, p.x, p.n, p.pct]), [
+    ['2026-11-10', 0, 4, 1], ['2026-11-18', 8, 10, 0.4], ['2026-11-20', 10, 20, 0.75],
+  ]);
+  assert.equal(s.total, 34);
+  // Nothing recorded, or nonsense: an empty week, never a crash.
+  assert.deepEqual(series(null, today), { span: 7, total: 0, points: [] });
+  assert.equal(series({ d: { junk: 'x', '2026-11-20': [0, 0] } }, today).points.length, 0);
+  // The clocks going back does not shift a day.
+  assert.equal(series({ d: { '2026-10-24': [5, 5] } }, new Date(2026, 9, 26)).points[0].x, 4);
+});
+
+test('improvement is the last 25 answers against the 25 before', () => {
+  const run = (wrong, right) => '0'.repeat(wrong) + '9'.repeat(right);
+  const m = momentum({ r: run(15, 10) + run(5, 20) });
+  assert.equal(m.before, 0.4);
+  assert.equal(m.now, 0.8);
+  assert.equal(Math.round(m.delta * 100), 40);
+  assert.deepEqual(trendWord(m.delta), { dir: 'up', short: '40', text: 'Up 40 points' });
+  assert.equal(trendWord(-0.1).text, 'Down 10 points');
+  assert.equal(trendWord(0.02).dir, 'level');
+  // Too few answers to compare.
+  assert.equal(momentum({ r: run(3, 6) }).now, null);
+  assert.equal(momentum({ r: run(5, 20) }).delta, null);
+  assert.equal(trendWord(null), null);
+  // A part-right result counts for part.
+  assert.equal(Math.round(momentum({ r: '5'.repeat(10) }).now * 100), 56);
+});
+
+test('a round is compared with the answers before it', () => {
+  const before = '0'.repeat(10) + '9'.repeat(10);
+  assert.equal(roundNote({ r: before + '9'.repeat(15) + '0'.repeat(5) }, 20, 15),
+    '75% this round: 25 points better than your 20 answers before it (50%).');
+  assert.equal(roundNote({ r: before + '0'.repeat(20) }, 20, 10), '50% this round: about the same as your 20 answers before it (50%).');
+  assert.equal(roundNote({ r: '9'.repeat(20) }, 20, 20), null);
+});
+
+test('the charts draw one mark per day practised', () => {
+  const s = series({ d: { '2026-11-20': [20, 15], '2026-11-18': [3, 1] } }, new Date(2026, 10, 20));
+  const chart = chartSvg(s, 1, new Date(2026, 10, 20));
+  assert.equal(chart.match(/class="tc-dot/g).length, 2);
+  assert.equal(chart.match(/tc-dot--few/g).length, 1);
+  assert.equal(chart.match(/class="tc-hit"/g).length, 2);
+  assert.ok(chart.includes('Today: 75% of 20') && !chart.includes('NaN'));
+  assert.ok(sparkSvg(s).includes('sp-line') && !sparkSvg(s).includes('NaN'));
+  assert.equal(sparkSvg(series(null)), '');
+});

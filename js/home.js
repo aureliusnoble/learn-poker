@@ -12,6 +12,8 @@ import { SPOTS as LIMP_SPOTS } from './data/limpers.js';
 import { SPOTS as SQUEEZE_SPOTS } from './data/squeeze.js';
 import { SPOTS as BLIND_SPOTS } from './data/blinds.js';
 import { installCard } from './install.js';
+import { logOf } from './store.js';
+import { momentum, trendWord } from './trend.js';
 
 const STORAGE_NOTE = {
   account: 'Progress is saved to your account and follows you between devices.',
@@ -60,6 +62,9 @@ export function home(root) {
     : streak > 0 ? `${streak} ${streak === 1 ? 'day' : 'days'} running. Keep it going today.`
     : 'Short drills for the things worth knowing cold.';
 
+  const overall = trendWord(momentum(logOf('all')).delta);
+  const improving = overall ? overall.text : '';
+
   // Opening ranges
   const t = totals();
   const edges = edgesKnown();
@@ -90,6 +95,7 @@ export function home(root) {
       items: [
         { route: 'play', title: 'Pre-flop simulator', text: 'Any situation: decide, size the raise, see the mistake', stat: accuracy('sim', 'situations', 'Start here'), main: true },
         { route: 'report', title: 'Simulator report', text: 'Where you leave the book: by situation, seat and leak' },
+        { route: 'trends', title: 'Progress over time', text: 'Your score on each exercise, day by day', stat: improving },
         { route: 'seats', title: 'Find your seat', text: 'Read your position from the dealer button', stat: accuracy('table', 'seats') },
         { route: 'sizes', title: 'Size the raise', text: '3-bets and 4-bets, in and out of position', stat: accuracy('table', 'sizes') },
         { route: 'facts', title: 'Quick facts', text: 'The numbers and rules to know by heart', stat: `${factsKnown}/${ALL_FACTS.length}` },

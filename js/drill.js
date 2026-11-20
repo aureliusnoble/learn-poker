@@ -81,13 +81,16 @@ export function verdict(ok, text) {
 }
 
 /** The end-of-round screen. `missRow(item)` returns [heading nodes, explanation]. */
-export function roundSummary(main, round, { missRow, again, back, extra = null }) {
+export function roundSummary(main, round, { missRow, again, back, extra = null, note = null }) {
   const pace = round.timed ? `${(round.ms / round.timed / 1000).toFixed(1)}s per decision · ` : '';
   fill(main,
     h('section', { class: 'result' },
       h('p', { class: 'eyebrow' }, 'Round complete'),
       h('p', { class: 'result__score' }, String(round.right), h('span', null, ` / ${round.total}`)),
-      h('p', { class: 'result__line' }, `${pace}best run ${round.best}`)),
+      h('p', { class: 'result__line' }, `${pace}best run ${round.best}`),
+      // How this round compares with the answers before it, once there are enough to compare.
+      note ? h('p', { class: 'result__note' }, note) : null,
+      h('a', { class: 'result__link', href: '#trends' }, 'Progress over time')),
     extra,
     round.misses.length
       ? h('section', { class: 'block' },

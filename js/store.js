@@ -5,9 +5,17 @@
 //
 // Shape: { v, updatedAt, days: { 'YYYY-MM-DD': {n, c} }, <topic>: { <bucket>: { <key>: item } } }
 // A practice item is { n: answers, c: correct, b: correct-in-a-row (capped), t: last seen }.
+//
+// `log` is the history that shows whether scores are improving. One entry per
+// exercise ('sim/steal', 'open/drill' ...), plus 'all' for everything:
+//   { d: { 'YYYY-MM-DD': [answers, score] }, r: 'recent results, oldest first' }
+// `r` holds one digit per answer, 9 for right and 0 for wrong, so a part-right
+// result (a painted chart) can sit in between.
 
 const KEY = 'learn-poker:v1';
 const MAX_BOX = 3;
+const RECENT_MAX = 200; // answers kept in each exercise's recent run
+const LOG_DAYS = 150; // days kept in each exercise's history
 const TOPICS = {
   open: ['hands', 'edges', 'paint', 'facts', 'time'],
   threebet: ['hands', 'spots', 'facts', 'time'],
@@ -20,7 +28,7 @@ const TOPICS = {
 };
 
 function blank() {
-  const s = { v: 1, updatedAt: 0, days: {} };
+  const s = { v: 1, updatedAt: 0, days: {}, log: {} };
   for (const [topic, buckets] of Object.entries(TOPICS)) {
     s[topic] = Object.fromEntries(buckets.map((b) => [b, {}]));
   }
@@ -33,6 +41,11 @@ function normalise(raw) {
   const base = blank();
   if (!isObj(raw) || raw.v !== 1) return base;
   if (isObj(raw.days)) base.days = raw.days;
+  if (isObj(raw.log)) base.log = raw.log;
+  // Progress saved before the history existed still has its daily totals: start the overall line from those.
+  if (!base.log.all && Object.keys(base.days).length) {
+    base.log.all = { d: Object.fromEntries(Object.entries(base.days).map(([day, v]) => [day, [v.n || 0, v.c || 0]])), r: '' };
+  }
   for (const [topic, buckets] of Object.entries(TOPICS)) {
     for (const b of buckets) if (isObj(raw[topic]) && isObj(raw[topic][b])) base[topic][b] = raw[topic][b];
   }
@@ -199,10 +212,43 @@ export function recordPaint(topic, key, score) {
 }
 
 export function resetProgress(topic) {
-  if (topic) state[topic] = blank()[topic];
-  else state = blank();
+  if (topic) {
+    state[topic] = blank()[topic];
+    // The topic's exercises lose their history with it. The overall line is kept.
+    for (const id of Object.keys(state.log)) if (id.startsWith(`${topic}/`)) delete state.log[id];
+  } else {
+    state = blank();
+  }
   commit();
 }
+
+// ---- History
+
+function logTo(id, day, score) {
+  const entry = isObj(state.log[id]) ? state.log[id] : (state.log[id] = { d: {}, r: '' });
+  if (!isObj(entry.d)) entry.d = {};
+  const cell = Array.isArray(entry.d[day]) ? entry.d[day] : (entry.d[day] = [0, 0]);
+  cell[0] += 1;
+  cell[1] = Math.round((cell[1] + score) * 1000) / 1000;
+  entry.r = (String(entry.r || '') + Math.round(score * 9)).slice(-RECENT_MAX);
+  const days = Object.keys(entry.d);
+  if (days.length > LOG_DAYS) for (const old of days.sort().slice(0, days.length - LOG_DAYS)) delete entry.d[old];
+}
+
+/**
+ * Adds one result to an exercise's history, and to the overall line.
+ * `score` runs from 0 (wrong) to 1 (right).
+ */
+export function logAnswer(ids, score) {
+  const value = Math.max(0, Math.min(1, Number(score) || 0));
+  const day = dayKey();
+  for (const id of [].concat(ids)) logTo(id, day, value);
+  logTo('all', day, value);
+  commit();
+}
+
+export const logOf = (id) => state.log[id] || null;
+export const logIds = () => Object.keys(state.log);
 
 // ---- Reading
 

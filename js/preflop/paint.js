@@ -3,7 +3,7 @@
 import { h, fill } from '../dom.js';
 import { shell, segmented, rangeGrid, legend, handTag } from '../components.js';
 import { POS, LADDER, ALL_HANDS, sortHands } from '../ranges.js';
-import { record, recordPaint, batch } from '../store.js';
+import { record, recordPaint, batch, logAnswer } from '../store.js';
 import { verdict } from '../drill.js';
 import { TOPIC } from './model.js';
 
@@ -39,7 +39,10 @@ export const paintDrill = (mode) => (root) => {
     checked = { missed, extra, hits };
     const wrong = new Set([...missed, ...extra]);
     batch(() => {
-      recordPaint(TOPIC, step.key, Math.max(0, (hits - extra.length) / target.size));
+      const share = Math.max(0, (hits - extra.length) / target.size);
+      recordPaint(TOPIC, step.key, share);
+      // A painted chart scores by how much of it was right.
+      logAnswer(layered ? 'open/layers' : 'open/paint', share);
       // Feed the hand-by-hand record too: every slip, and every edge hand placed correctly.
       for (const hand of wrong) record(TOPIC, 'hands', `${step.to}:${hand}`, false, { countsToday: false });
       for (const hand of ALL_HANDS) {

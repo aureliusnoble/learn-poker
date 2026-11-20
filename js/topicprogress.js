@@ -97,7 +97,8 @@ export function topicProgress(root, cfg) {
         h('div', { class: 'tile' }, h('p', { class: 'tile__label' }, 'Answers'), h('p', { class: 'tile__value' }, String(t.n))),
         h('div', { class: 'tile' }, h('p', { class: 'tile__label' }, 'Correct'), h('p', { class: 'tile__value' }, t.n ? pct(t.c / t.n) : '–')),
         h('div', { class: 'tile' }, h('p', { class: 'tile__label' }, 'Day streak'), h('p', { class: 'tile__value' }, String(dayStreak())))),
-      t.n ? null : h('p', { class: 'note' }, 'Nothing recorded yet. Play a drill and this page fills in.'),
+      t.n ? h('a', { class: 'linkbtn', href: '#trends' }, 'See how your scores are changing over time')
+        : h('p', { class: 'note' }, 'Nothing recorded yet. Play a drill and this page fills in.'),
       cfg.charts ? heatMap() : null,
       (cfg.decks || []).map(deck),
       h('section', { class: 'block block--reset' },

@@ -2,11 +2,13 @@
 import { h, fill } from '../dom.js';
 import { shell, segmented, seatStrip, rowCards, dealSuits } from '../components.js';
 import { POS, rowHands, rowLabel, rowNoun, rowRule } from '../ranges.js';
-import { record } from '../store.js';
+import { record, batch, logAnswer, logOf } from '../store.js';
+import { roundNote } from '../trend.js';
 import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary } from '../drill.js';
 import { TOPIC, pickRow, SEAT_OPTIONS, seatsFor } from './model.js';
 
 const ROUND = 12;
+const LOG = 'open/edges';
 let seatFilter = 'ALL';
 
 export function edgesDrill(root) {
@@ -42,7 +44,10 @@ export function edgesDrill(root) {
       slip = at(pick) > at(correct) ? 'Too loose.' : 'Too tight.';
     }
     result = { ok, pick, correct, slip };
-    record(TOPIC, 'edges', `${q.seat}:${q.row}`, ok);
+    batch(() => {
+      record(TOPIC, 'edges', `${q.seat}:${q.row}`, ok);
+      logAnswer(LOG, ok ? 1 : 0);
+    });
     score(round, `${q.seat}:${q.row}`, ok, null, { seat: q.seat, row: q.row });
     draw();
   }
@@ -53,6 +58,7 @@ export function edgesDrill(root) {
       roundSummary(main, round, {
         back: 'home',
         again: start,
+        note: roundNote(logOf(LOG), round.i, round.right),
         missRow: (it) => [
           [h('span', { class: 'hand' }, rowLabel(it.row)), h('span', { class: 'tag' }, it.seat)],
           rowRule(it.seat, it.row),

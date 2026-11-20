@@ -97,6 +97,7 @@ export function setTool(root) {
 export function callDrill(root) {
   return spotDrill(root, {
     title: 'Call, 3-bet or fold',
+    log: 'coldcall/drill',
     back: 'home',
     topic: TOPIC,
     bucket: 'hands',
@@ -114,6 +115,7 @@ export function callDrill(root) {
 export function callSpots(root) {
   return spotDrill(root, {
     title: 'Read the table',
+    log: 'coldcall/spots',
     back: 'home',
     topic: TOPIC,
     bucket: 'spots',
@@ -128,6 +130,7 @@ export function setDrill(root) {
   let turn = 0;
   return spotDrill(root, {
     title: 'Set mining',
+    log: 'coldcall/sets',
     back: 'home',
     topic: TOPIC,
     bucket: 'sets',
