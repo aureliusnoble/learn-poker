@@ -16,12 +16,12 @@
 //   math       { call, effective } for the set-mining sum            (optional)
 //   lens       { chart, hand } to show the chart with the hand marked (optional)
 //   hideSeats  true to leave seat names off the table until answered
-//   quick      true to move on by itself after a correct answer
+//   quick      true for a snap decision: its thinking time is recorded
 import { h, fill, weightedPick } from './dom.js';
 import { shell, segmented, dealSuits, handTag } from './components.js';
 import { describeHand } from './ranges.js';
 import { record, recordTime, stat } from './store.js';
-import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, boxWeight, LEAKS } from './drill.js';
+import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, boxWeight, onKeys, LEAKS } from './drill.js';
 import { readSpot, tableView, spotFacts, readsList, optionLabel, optionPhrase, SEAT_NAMES } from './table.js';
 import { factorList, setMath, rangeLens } from './feedback.js';
 
@@ -68,11 +68,10 @@ export function spotDrill(root, cfg) {
   let spot;
   let info;
   let view;
-  let phase; // 'ask' | 'size' | 'done'
+  let phase; // 'ask' | 'size' | 'done' | 'summary'
   let result;
   let suits;
   let t0;
-  let timer = null;
 
   const keyOf = (s) => s.key || s.id;
   const optionsOf = (s) => s.options.map((o) => (typeof o === 'string' ? { id: o, label: optionLabel(o, info) } : o));
@@ -134,8 +133,8 @@ export function spotDrill(root, cfg) {
     if (res.leak) round.leaks[res.leak] = (round.leaks[res.leak] || 0) + 1;
     if (cfg.onAnswer) cfg.onAnswer(spot, res);
     score(round, keyOf(spot), res.ok, spot.quick ? ms : null, spot);
+    // Nothing moves on by itself: the feedback stays until Next is tapped.
     draw();
-    if (res.ok && spot.quick) timer = setTimeout(advance, 950);
   }
 
   function leakReport() {
@@ -149,10 +148,9 @@ export function spotDrill(root, cfg) {
   }
 
   function advance() {
-    clearTimeout(timer);
-    timer = null;
     if (!roundOver(round)) return ask();
     result = null;
+    phase = 'summary';
     roundSummary(main, round, {
       back: cfg.back,
       again: start,
@@ -216,20 +214,11 @@ export function spotDrill(root, cfg) {
     const filter = cfg.filter;
     const done = phase === 'done';
 
-    const choice = (o) => {
-      let cls = 'btn choice';
-      const right = result && (result.sizeId ? o.id === spot.size.correct : spot.correct.includes(o.id));
-      const chosen = result && (result.sizeId ? o.id === result.sizeId : o.id === result.id);
-      if (done && right) cls += ' is-right';
-      else if (done && chosen) cls += ' is-wrong';
-      const primary = !done && (sizing || !QUIET.has(o.id));
-      return h('button', {
-        type: 'button',
-        class: `${cls} ${primary ? 'btn--primary' : 'btn--quiet'}`,
-        disabled: done,
-        onclick: () => pick(o.id),
-      }, o.label);
-    };
+    const choice = (o) => h('button', {
+      type: 'button',
+      class: `btn choice ${sizing || !QUIET.has(o.id) ? 'btn--primary' : 'btn--quiet'}`,
+      onclick: () => pick(o.id),
+    }, o.label);
 
     const limpers = info && info.level === 1 ? info.limpers.length : 0;
     const callers = info && info.level === 2 ? info.callers.length : 0;
@@ -238,9 +227,6 @@ export function spotDrill(root, cfg) {
       || (limpers ? `${limpers === 1 ? 'A limper' : `${limpers} limpers`} in front. What is your play?`
         : callers ? `A raise and ${callers === 1 ? 'a caller' : `${callers} callers`}. What is your play?`
         : DEFAULT_QUESTION[info ? info.level : 2]);
-    const showChoices = !done || (result.ok && spot.quick);
-    // After a size answer, show the sizes; otherwise the plays.
-    const shown = done && result.sizeId ? spot.size.options : opts;
 
     fill(main,
       filter ? filterRow(filter, done) : null,
@@ -258,15 +244,18 @@ export function spotDrill(root, cfg) {
         : null,
       h('p', { class: 'ask' }, question),
       done ? h('div', { class: 'feedback feedback--open', 'aria-live': 'polite' }, feedback()) : null,
-      h('div', { class: `actions ${showChoices && wordy ? 'actions--stack' : ''} ${showChoices && shown.length > 4 ? 'actions--many' : ''}` },
-        showChoices
-          ? shown.map(choice)
-          : h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },
-            roundOver(round) ? 'See the round' : 'Next hand')),
+      done
+        ? h('div', { class: 'actions actions--next' },
+          h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },
+            roundOver(round) ? 'See the round' : 'Next hand'))
+        : h('div', { class: `actions ${wordy ? 'actions--stack' : ''} ${opts.length > 4 ? 'actions--many' : ''}` }, opts.map(choice)),
     );
     if (done) main.querySelector('.feedback').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
+  // At a desk, Enter or Space moves on.
+  const next = () => (phase === 'done' ? advance() : false);
+  const offKeys = onKeys({ enter: next, ' ': next });
   start();
-  return () => clearTimeout(timer);
+  return offKeys;
 }

@@ -19,7 +19,6 @@ export function openDrill(root, params = {}) {
   let round;
   let q;
   let result;
-  let timer = null;
 
   function start() {
     round = newRound(weak ? Math.min(ROUND, Math.max(10, weak.length * 2)) : ROUND);
@@ -48,12 +47,9 @@ export function openDrill(root, params = {}) {
     recordTime(TOPIC, q.seat, ms);
     score(round, `${q.seat}:${q.hand}`, ok, ms, { seat: q.seat, hand: q.hand });
     draw();
-    if (ok) timer = setTimeout(advance, 900);
   }
 
   function advance() {
-    clearTimeout(timer);
-    timer = null;
     if (roundOver(round)) {
       result = null;
       roundSummary(main, round, {
@@ -80,15 +76,15 @@ export function openDrill(root, params = {}) {
   }
 
   function actions() {
-    if (result && !result.ok) {
-      return h('div', { class: 'actions' },
+    // Nothing moves on by itself: the feedback stays until Next is tapped.
+    if (result) {
+      return h('div', { class: 'actions actions--next' },
         h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },
           roundOver(round) ? 'See the round' : 'Next hand'));
     }
-    const picked = (raise) => (result && result.raise === raise ? ' is-picked' : '');
     return h('div', { class: 'actions' },
-      h('button', { type: 'button', class: `btn btn--quiet${picked(false)}`, disabled: !!result, onclick: () => answer(false) }, 'Fold'),
-      h('button', { type: 'button', class: `btn btn--primary${picked(true)}`, disabled: !!result, onclick: () => answer(true) }, `Raise ${OPEN_SIZE_BB}bb`));
+      h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => answer(false) }, 'Fold'),
+      h('button', { type: 'button', class: 'btn btn--primary', onclick: () => answer(true) }, `Raise ${OPEN_SIZE_BB}bb`));
   }
 
   function draw() {
@@ -115,13 +111,10 @@ export function openDrill(root, params = {}) {
   const offKeys = onKeys({
     f: () => answer(false),
     r: () => answer(true),
-    enter: () => { if (result && !result.ok) advance(); },
-    ' ': () => { if (result && !result.ok) advance(); },
+    enter: () => (result ? advance() : false),
+    ' ': () => (result ? advance() : false),
   });
 
   start();
-  return () => {
-    clearTimeout(timer);
-    offKeys();
-  };
+  return offKeys;
 }

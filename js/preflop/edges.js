@@ -16,7 +16,6 @@ export function edgesDrill(root) {
   let round;
   let q;
   let result;
-  let timer = null;
 
   function start() {
     round = newRound(ROUND);
@@ -46,12 +45,9 @@ export function edgesDrill(root) {
     record(TOPIC, 'edges', `${q.seat}:${q.row}`, ok);
     score(round, `${q.seat}:${q.row}`, ok, null, { seat: q.seat, row: q.row });
     draw();
-    if (ok) timer = setTimeout(advance, 900);
   }
 
   function advance() {
-    clearTimeout(timer);
-    timer = null;
     if (roundOver(round)) {
       result = null;
       roundSummary(main, round, {
@@ -100,8 +96,8 @@ export function edgesDrill(root) {
             verdict(result.ok, result.ok ? 'Correct.' : result.slip),
             h('p', { class: 'feedback__rule' }, rowRule(q.seat, q.row)))
           : null),
-      result && !result.ok
-        ? h('div', { class: 'actions' },
+      result
+        ? h('div', { class: 'actions actions--next' },
           h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },
             roundOver(round) ? 'See the round' : 'Next row'))
         : null,
@@ -109,5 +105,4 @@ export function edgesDrill(root) {
   }
 
   start();
-  return () => clearTimeout(timer);
 }

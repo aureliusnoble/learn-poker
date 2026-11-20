@@ -108,10 +108,8 @@ export function onKeys(map) {
   const handler = (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const fn = map[e.key.toLowerCase()];
-    if (fn) {
-      e.preventDefault();
-      fn();
-    }
+    // A handler returns false when the key has nothing to do right now.
+    if (fn && fn() !== false) e.preventDefault();
   };
   document.addEventListener('keydown', handler);
   return () => document.removeEventListener('keydown', handler);
