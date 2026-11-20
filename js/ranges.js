@@ -20,6 +20,7 @@ const cap = (s) => s[0].toUpperCase() + s.slice(1);
  * 'KQo'     -> ['KQo']
  * '44-22'   -> ['44', '33', '22']
  * 'A4s-A2s' -> ['A4s', 'A3s', 'A2s']
+ * 'JTs-76s' -> ['JTs', 'T9s', '98s', '87s', '76s']
  */
 export function expand(token) {
   const bad = () => new Error(`Bad range token: ${token}`);
@@ -36,10 +37,19 @@ export function expand(token) {
 
   if (token.includes('-')) {
     const [a, b] = token.split('-').map(parse);
-    if (a.kind !== b.kind || (a.kind !== 'p' && a.hi !== b.hi)) throw bad();
-    const from = Math.min(a.lo, b.lo);
-    const to = Math.max(a.lo, b.lo);
-    for (let k = from; k <= to; k++) out.push(a.kind === 'p' ? hand(k, k, 'p') : hand(a.hi, k, a.kind));
+    if (a.kind !== b.kind) throw bad();
+    if (a.kind === 'p' || a.hi === b.hi) {
+      // '44-22' or 'A4s-A2s': one top card, a run of kickers
+      const from = Math.min(a.lo, b.lo);
+      const to = Math.max(a.lo, b.lo);
+      for (let k = from; k <= to; k++) out.push(a.kind === 'p' ? hand(k, k, 'p') : hand(a.hi, k, a.kind));
+    } else if (a.lo - a.hi === b.lo - b.hi) {
+      // 'JTs-76s': a run of connectors with the same gap
+      const gap = a.lo - a.hi;
+      for (let k = Math.min(a.hi, b.hi); k <= Math.max(a.hi, b.hi); k++) out.push(hand(k, k + gap, a.kind));
+    } else {
+      throw bad();
+    }
     return out;
   }
 

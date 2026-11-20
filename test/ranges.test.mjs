@@ -90,6 +90,8 @@ test('dash ranges expand', () => {
   assert.deepEqual(expand('44-22'), ['44', '33', '22']);
   assert.deepEqual(expand('A4s-A2s'), ['A4s', 'A3s', 'A2s']);
   assert.deepEqual(expand('22-44'), ['44', '33', '22']);
+  assert.deepEqual(expand('JTs-76s'), ['JTs', 'T9s', '98s', '87s', '76s']);
+  assert.deepEqual(expand('QQ-99'), ['QQ', 'JJ', 'TT', '99']);
   assert.throws(() => expand('A4s-K2s'));
   assert.throws(() => expand('A4s-A2o'));
 });
