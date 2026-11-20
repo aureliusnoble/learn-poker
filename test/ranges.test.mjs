@@ -95,3 +95,67 @@ test('dash ranges expand', () => {
   assert.throws(() => expand('A4s-K2s'));
   assert.throws(() => expand('A4s-A2o'));
 });
+
+// ---- The table simulator and the tutorial data
+
+import { readSpot } from '../js/table.js';
+import { makeChart } from '../js/charts.js';
+import * as threebet from '../js/data/threebet.js';
+import * as coldcall from '../js/data/coldcall.js';
+
+test('the table plays a spot out: folds, pot and price', () => {
+  const open = readSpot({ hero: { seat: 'CO', hand: 'ATs' }, action: [['MP', 'raise', 3]] });
+  assert.equal(open.pot, 4.5);
+  assert.equal(open.toCall, 3);
+  assert.equal(open.level, 2);
+  assert.equal(open.behind, 3);
+  const last = open.frames.at(-1).seats;
+  assert.deepEqual([last.UTG.status, last.MP.status, last.CO.status, last.BTN.status], ['folded', 'raised', 'hero', 'toact']);
+
+  // The hero opens, the button 3-bets, and the blinds get out of the way.
+  const threeBet = readSpot({ hero: { seat: 'CO', hand: '33', stack: 89 }, stacks: { BTN: 89 }, action: [['CO', 'raise', 3], ['BTN', 'raise', 10]] });
+  assert.equal(threeBet.toCall, 7);
+  assert.equal(threeBet.pot, 14.5);
+  assert.equal(threeBet.level, 3);
+  assert.equal(threeBet.effective, 89);
+  assert.equal(threeBet.behind, 0);
+
+  // From the big blind, the price is the raise less the blind already posted.
+  const blind = readSpot({ hero: { seat: 'BB', hand: '22' }, stacks: { CO: 168 }, action: [['CO', 'raise', 4]] });
+  assert.equal(blind.toCall, 3);
+  assert.equal(blind.effective, 100);
+
+  const first = readSpot({ hero: { seat: 'UTG', hand: 'AA' } });
+  assert.equal(first.level, 1);
+  assert.equal(first.pot, 1.5);
+  assert.equal(first.behind, 5);
+});
+
+test('the calling charts match the percentages printed in the book', () => {
+  for (const c of coldcall.CALL_CHARTS) {
+    const chart = makeChart({ id: c.id, categories: [{ id: 'gap', tokens: c.gap }, { id: 'weaker', tokens: c.weaker }] });
+    assert.equal(chart.pct.toFixed(2), c.callPct.toFixed(2), c.id);
+    assert.equal(chart.category('gap').pct.toFixed(2), c.gapPct.toFixed(2), c.id);
+    const calls = new Set([...c.gap, ...c.weaker].flatMap(expand));
+    for (const hand of c.value3bet.flatMap(expand)) assert.ok(!calls.has(hand), `${hand} is both a call and a 3-bet vs ${c.id}`);
+    for (const hand of c.optional3bet.flatMap(expand)) assert.ok(calls.has(hand), `${hand} is optional but not a call vs ${c.id}`);
+  }
+});
+
+test('every practice spot is answerable and points at a real lesson', () => {
+  const check = (spots, lessons) => {
+    const ids = new Set();
+    for (const s of spots) {
+      assert.ok(!ids.has(s.id), `duplicate ${s.id}`);
+      ids.add(s.id);
+      const options = s.options.map((o) => (typeof o === 'string' ? o : o.id));
+      assert.ok(s.correct.length && s.correct.every((id) => options.includes(id)), `${s.id}: answer not among the options`);
+      assert.ok(lessons.some((l) => l.id === s.lesson), `${s.id}: unknown lesson ${s.lesson}`);
+      assert.ok(s.why && s.title, `${s.id}: needs a title and a reason`);
+      if (s.hero) readSpot(s);
+    }
+  };
+  check(threebet.SPOTS, threebet.LESSONS);
+  check([...coldcall.CALL_SPOTS, ...coldcall.SET_SPOTS], coldcall.LESSONS);
+  for (const chart of threebet.CHARTS) assert.ok(makeChart(chart).hands.size > 0);
+});

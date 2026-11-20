@@ -105,7 +105,7 @@ export const LESSONS = [
   {
     id: 'criteria',
     title: 'Five things to weigh before calling',
-    points: CRITERIA.map((c) => `${c.name}. ${c.text}`),
+    points: CRITERIA.map((c) => [c.name, c.text]),
   },
   {
     id: 'ranges',

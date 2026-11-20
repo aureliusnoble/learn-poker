@@ -1,6 +1,7 @@
 // Raise or fold: one seat, one hand, one decision.
 import { h, fill } from '../dom.js';
-import { shell, segmented, seatStrip, handCards, dealSuits, miniMap, handTag } from '../components.js';
+import { shell, segmented, dealSuits, miniMap, handTag } from '../components.js';
+import { readSpot, tableView, spotFacts } from '../table.js';
 import { POS, OPEN_SIZE_BB, explain, describeHand } from '../ranges.js';
 import { record, recordTime } from '../store.js';
 import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, onKeys } from '../drill.js';
@@ -27,7 +28,11 @@ export function openDrill(root, params = {}) {
 
   function ask() {
     q = dueRetry(round) || (weak ? pickFrom(weak, round.recent) : pickHand(seatsFor(seatFilter), round.recent));
-    q = { seat: q.seat, hand: q.hand, suits: dealSuits(q.hand), t0: performance.now() };
+    q = { seat: q.seat, hand: q.hand, t0: performance.now() };
+    // The same table every tutorial uses: everyone before you has folded.
+    q.spot = { hero: { seat: q.seat, hand: q.hand } };
+    q.info = readSpot(q.spot);
+    q.view = tableView(q.spot, q.info, { suits: dealSuits(q.hand) });
     result = null;
     draw();
   }
@@ -95,12 +100,12 @@ export function openDrill(root, params = {}) {
           if (result) draw(); else ask();
         }, 'Seats to practise'),
       progressRow(round),
-      h('section', { class: 'felt' },
-        seatStrip(q.seat),
-        h('p', { class: 'felt__seat' },
-          h('strong', null, pos.name), q.seat === 'UTG' ? ' · first to act' : ' · folded to you'),
-        handCards(q.hand, q.suits),
-        h('p', { class: 'felt__hand' }, describeHand(q.hand))),
+      h('section', { class: 'spot' },
+        q.view.el,
+        h('div', { class: 'spot__meta' },
+          h('p', { class: 'spot__hand' },
+            h('strong', null, describeHand(q.hand)), ' · ', pos.name, q.seat === 'UTG' ? ', first to act' : ', folded to you'),
+          spotFacts(q.info))),
       h('div', { class: 'feedback', 'aria-live': 'polite' }, feedback()),
       actions(),
     );

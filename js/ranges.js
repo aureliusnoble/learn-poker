@@ -137,19 +137,20 @@ export function buildRange(tokens) {
  * How far each hand sits from the edge of the set on the chart (1 = right on it).
  * Hands near an edge are the ones worth drilling.
  */
-export function edgeDistances(hands) {
+export const edgeDistances = (hands) => edgeDistancesBy((hand) => hands.has(hand));
+
+/** The same for any labelling of the chart: distance to the nearest hand labelled differently. */
+export function edgeDistancesBy(labelOf) {
+  const label = ALL_HANDS.map(labelOf);
   const dist = new Map();
-  for (let r = 0; r < 13; r++) {
-    for (let c = 0; c < 13; c++) {
-      const inside = hands.has(handAt(r, c));
-      let best = 13;
-      for (let r2 = 0; r2 < 13; r2++) {
-        for (let c2 = 0; c2 < 13; c2++) {
-          if (hands.has(handAt(r2, c2)) !== inside) best = Math.min(best, Math.max(Math.abs(r - r2), Math.abs(c - c2)));
-        }
-      }
-      dist.set(handAt(r, c), best);
+  for (let i = 0; i < 169; i++) {
+    const r = Math.floor(i / 13);
+    const c = i % 13;
+    let best = 13;
+    for (let j = 0; j < 169; j++) {
+      if (label[j] !== label[i]) best = Math.min(best, Math.max(Math.abs(r - Math.floor(j / 13)), Math.abs(c - (j % 13))));
     }
+    dist.set(ALL_HANDS[i], best);
   }
   return dist;
 }
