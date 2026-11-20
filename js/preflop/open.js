@@ -1,0 +1,121 @@
+// Raise or fold: one seat, one hand, one decision.
+import { h, fill } from '../dom.js';
+import { shell, segmented, seatStrip, handCards, dealSuits, miniMap, handTag } from '../components.js';
+import { POS, OPEN_SIZE_BB, explain, describeHand } from '../ranges.js';
+import { record, recordTime } from '../store.js';
+import { newRound, score, dueRetry, roundOver, progressRow, verdict, roundSummary, onKeys } from '../drill.js';
+import { TOPIC, pickHand, pickFrom, play, verdictLine, SEAT_OPTIONS, seatsFor } from './model.js';
+
+const ROUND = 20;
+let seatFilter = 'ALL';
+
+export function openDrill(root, params = {}) {
+  const weak = params.items && params.items.length ? params.items : null;
+  const back = weak ? 'open-progress' : 'home';
+  const main = shell(root, { title: weak ? 'Weak spots' : 'Raise or fold', back });
+  main.classList.add('page--drill');
+
+  let round;
+  let q;
+  let result;
+  let timer = null;
+
+  function start() {
+    round = newRound(weak ? Math.min(ROUND, Math.max(10, weak.length * 2)) : ROUND);
+    ask();
+  }
+
+  function ask() {
+    q = dueRetry(round) || (weak ? pickFrom(weak, round.recent) : pickHand(seatsFor(seatFilter), round.recent));
+    q = { seat: q.seat, hand: q.hand, suits: dealSuits(q.hand), t0: performance.now() };
+    result = null;
+    draw();
+  }
+
+  function answer(raise) {
+    if (result) return;
+    const ms = performance.now() - q.t0;
+    const info = explain(q.seat, q.hand);
+    const ok = raise === info.inRange;
+    result = { ok, raise, info };
+    record(TOPIC, 'hands', `${q.seat}:${q.hand}`, ok);
+    recordTime(TOPIC, q.seat, ms);
+    score(round, `${q.seat}:${q.hand}`, ok, ms, { seat: q.seat, hand: q.hand });
+    draw();
+    if (ok) timer = setTimeout(advance, 900);
+  }
+
+  function advance() {
+    clearTimeout(timer);
+    timer = null;
+    if (roundOver(round)) {
+      result = null;
+      roundSummary(main, round, {
+        back,
+        again: start,
+        missRow: (it) => [[handTag(it.hand), h('span', { class: 'tag' }, it.seat)], verdictLine(it.seat, it.hand)],
+      });
+    } else {
+      ask();
+    }
+  }
+
+  function feedback() {
+    if (!result) return h('p', { class: 'feedback__idle' }, `Open for ${OPEN_SIZE_BB}bb, or fold?`);
+    const { ok, info } = result;
+    const head = verdict(ok, ok
+      ? `Correct. ${play(info.inRange)}.`
+      : info.inRange ? `Wrong. Raise ${q.hand} to ${OPEN_SIZE_BB}bb here.` : `Wrong. Fold ${q.hand} here.`);
+    const rule = h('p', { class: 'feedback__rule' }, info.rule);
+    if (ok) return h('div', { class: 'feedback__body' }, head, rule);
+    return h('div', { class: 'feedback__body feedback__body--map' },
+      miniMap(q.seat, q.hand),
+      h('div', { class: 'feedback__text' }, head, rule));
+  }
+
+  function actions() {
+    if (result && !result.ok) {
+      return h('div', { class: 'actions' },
+        h('button', { type: 'button', class: 'btn btn--primary btn--wide', onclick: advance },
+          roundOver(round) ? 'See the round' : 'Next hand'));
+    }
+    const picked = (raise) => (result && result.raise === raise ? ' is-picked' : '');
+    return h('div', { class: 'actions' },
+      h('button', { type: 'button', class: `btn btn--quiet${picked(false)}`, disabled: !!result, onclick: () => answer(false) }, 'Fold'),
+      h('button', { type: 'button', class: `btn btn--primary${picked(true)}`, disabled: !!result, onclick: () => answer(true) }, `Raise ${OPEN_SIZE_BB}bb`));
+  }
+
+  function draw() {
+    const pos = POS[q.seat];
+    fill(main,
+      weak
+        ? h('p', { class: 'hint' }, `Only the ${weak.length} ${weak.length === 1 ? 'hand' : 'hands'} you miss most.`)
+        : segmented(SEAT_OPTIONS, seatFilter, (v) => {
+          seatFilter = v;
+          if (result) draw(); else ask();
+        }, 'Seats to practise'),
+      progressRow(round),
+      h('section', { class: 'felt' },
+        seatStrip(q.seat),
+        h('p', { class: 'felt__seat' },
+          h('strong', null, pos.name), q.seat === 'UTG' ? ' · first to act' : ' · folded to you'),
+        handCards(q.hand, q.suits),
+        h('p', { class: 'felt__hand' }, describeHand(q.hand))),
+      h('div', { class: 'feedback', 'aria-live': 'polite' }, feedback()),
+      actions(),
+    );
+  }
+
+  const offKeys = onKeys({
+    f: () => answer(false),
+    r: () => answer(true),
+    enter: () => { if (result && !result.ok) advance(); },
+    ' ': () => { if (result && !result.ok) advance(); },
+  });
+
+  start();
+  return () => {
+    clearTimeout(timer);
+    offKeys();
+  };
+}

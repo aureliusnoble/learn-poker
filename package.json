@@ -1,0 +1,15 @@
+{
+  "name": "learn-poker",
+  "private": true,
+  "type": "module",
+  "description": "Short drills for learning pre-flop poker ranges.",
+  "scripts": {
+    "start": "npx --yes serve -l 4173 .",
+    "test": "node --test test/*.test.mjs",
+    "ranges": "node scripts/verify-ranges.mjs",
+    "build:artifact": "node scripts/build-artifact.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
